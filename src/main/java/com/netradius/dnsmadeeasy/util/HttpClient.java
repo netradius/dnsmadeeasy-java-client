@@ -73,10 +73,10 @@ public class HttpClient {
 			return response;
 	}
 
-	public HttpResponse delete(String url, String domainId, String apiKey, String secretKeyHash, String requestDate) {
+	public HttpResponse delete(String url, String deleteRequest, String apiKey, String secretKeyHash, String requestDate) {
 		CloseableHttpClient httpClient = HttpClientBuilder.create().build();
 		HttpDeleteWithBody deleteWithBody = getHttpDelete(url, apiKey, secretKeyHash, requestDate);
-		StringEntity entity = new StringEntity("'{[" + domainId + "\"]}'", "UTF-8");
+		StringEntity entity = new StringEntity( deleteRequest, "UTF-8");
 		entity.setContentType("application/json");
 		deleteWithBody.setEntity(entity);
 		HttpResponse response = null;

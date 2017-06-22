@@ -19,5 +19,7 @@ public class ManagedDNSRequestJson implements Serializable {
 	String name;
 	String vanityId;
 	String templateId;
+	String [] ids;
+	String [] names;
 
 }
