@@ -3,9 +3,11 @@ package com.netradius.dnsmadeeasy.http.impl;
 import com.netradius.dnsmadeeasy.data.DNSDomainResponse;
 import com.netradius.dnsmadeeasy.data.ManagedDNSRequestJson;
 import com.netradius.dnsmadeeasy.data.ManagedDNSResponse;
-import com.netradius.dnsmadeeasy.http.DNSMadeEasyClient;
+import com.netradius.dnsmadeeasy.util.DateUtils;
 import com.netradius.dnsmadeeasy.util.HttpClient;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.http.HttpResponse;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
@@ -19,24 +21,33 @@ import java.io.IOException;
  * @author Abhijeet C Kale
  */
 @Slf4j
-public class DNSMadeEasyRestClient implements DNSMadeEasyClient {
+@Data
+public class DNSMadeEasyRestClient  {
 
 	private static final ObjectMapper mapper = new ObjectMapper();
 	private static final HttpClient client = new HttpClient();
+	private String restUrl;
+	private String apiKey;
+	private String apiSecret;
 
 	private void settMapperProperties() {
 		mapper.setSerializationInclusion(Inclusion.NON_NULL);
 	}
 
-	@Override
-	public ManagedDNSResponse createDomain(String domainName, String restUrl, String apiKey, String secretHash, String
-			requestDate) throws IOException {
+	public DNSMadeEasyRestClient(String restUrl, String apiKey, String apiSecret) {
+		this.restUrl = restUrl;
+		this.apiKey = apiKey;
+		this.apiSecret = apiSecret;
+	}
+
+	public ManagedDNSResponse createDomain(String domainName) throws IOException {
 		ManagedDNSResponse result = null;
 		settMapperProperties();
 		ManagedDNSRequestJson domainRequest = new ManagedDNSRequestJson();
 		domainRequest.setName(domainName);
 		String json = mapper.writeValueAsString(domainRequest);
-		HttpResponse response = client.post(restUrl + "/dns/managed/", json, apiKey, secretHash, requestDate);
+		String requestDate = DateUtils.dateToStringInGMT();
+		HttpResponse response = client.post(restUrl + "/dns/managed/", json, apiKey, getSecretHash(requestDate), requestDate);
 		if (response != null) {
 			result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
 		}
@@ -47,14 +58,11 @@ public class DNSMadeEasyRestClient implements DNSMadeEasyClient {
 		return result;
 	}
 
-	@Override
-	public ManagedDNSResponse getDomains(String restApiUrl, String apiKey, String secretHash, String requestDate)
+	public ManagedDNSResponse getDomains()
 			throws IOException {
-
-		HttpResponse response = client.get(restApiUrl + "/dns/managed/", apiKey, secretHash,
-				requestDate);
+		String requestDate = DateUtils.dateToStringInGMT();
+		HttpResponse response = client.get(restUrl + "/dns/managed/", apiKey, getSecretHash(requestDate), requestDate);
 		ManagedDNSResponse result = null;
-
 		if (response != null) {
 			result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
 		}
@@ -65,13 +73,10 @@ public class DNSMadeEasyRestClient implements DNSMadeEasyClient {
 		return result;
 	}
 
-	@Override
-	public ManagedDNSResponse deleteDomain(String domainId, String restApiUrl, String apiKey, String secretKeyHash,
-			String requestDate) throws IOException {
-		HttpResponse response = client.delete(restApiUrl + "/dns/managed/" + domainId, domainId, apiKey,
-				secretKeyHash, requestDate);
+	public ManagedDNSResponse deleteDomain(String domainId) throws IOException {
+		String requestDate = DateUtils.dateToStringInGMT();
+		HttpResponse response = client.delete(restUrl + "/dns/managed/" + domainId, domainId, apiKey, getSecretHash(requestDate), requestDate);
 		ManagedDNSResponse result = null;
-
 		if (response != null) {
 			result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
 		}
@@ -82,12 +87,9 @@ public class DNSMadeEasyRestClient implements DNSMadeEasyClient {
 		return result;
 	}
 
-	@Override
-	public DNSDomainResponse getDomain(String domainId, String restApiUrl, String apiKey, String secretHash,
-			String requestDate) throws IOException {
-
-		HttpResponse response = client.get(restApiUrl + "/dns/managed/" + domainId, apiKey, secretHash,
-				requestDate);
+	public DNSDomainResponse getDomain(String domainId) throws IOException {
+		String requestDate = DateUtils.dateToStringInGMT();
+		HttpResponse response = client.get(restUrl + "/dns/managed/" + domainId, apiKey, getSecretHash(requestDate), requestDate);
 		DNSDomainResponse result = null;
 
 		if (response != null) {
@@ -100,9 +102,7 @@ public class DNSMadeEasyRestClient implements DNSMadeEasyClient {
 		return result;
 	}
 
-	@Override
-	public ManagedDNSResponse updateDomainConfiguration(String domainId, String vanityId, String templateId, String restApiUrl,
-				String apiKey, String secretHash, String requestDate) throws IOException {
+	public ManagedDNSResponse updateDomainConfiguration(String domainId, String vanityId, String templateId) throws IOException {
 		ManagedDNSResponse result = null;
 		settMapperProperties();
 		ManagedDNSRequestJson domainRequest = new ManagedDNSRequestJson();
@@ -113,7 +113,8 @@ public class DNSMadeEasyRestClient implements DNSMadeEasyClient {
 			domainRequest.setTemplateId(templateId);
 		}
 		String json = mapper.writeValueAsString(domainRequest);
-		HttpResponse response = client.put(restApiUrl + "/dns/managed/" + domainId, json, apiKey, secretHash, requestDate);
+		String requestDate = DateUtils.dateToStringInGMT();
+		HttpResponse response = client.put(restUrl + "/dns/managed/" + domainId, json, apiKey, getSecretHash(requestDate), requestDate);
 		if (response != null) {
 			result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
 		}
@@ -122,6 +123,10 @@ public class DNSMadeEasyRestClient implements DNSMadeEasyClient {
 		}
 
 		return result;
+	}
+
+	private String getSecretHash(String requestDate) {
+		return HmacUtils.hmacSha1Hex(getApiSecret(), requestDate);
 	}
 
 }

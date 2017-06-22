@@ -1,10 +1,12 @@
 package com.netradius.dnsmadeeasy;
 
+import com.netradius.dnsmadeeasy.data.DNSDomainResponse;
+import com.netradius.dnsmadeeasy.data.ManagedDNSResponse;
 import com.netradius.dnsmadeeasy.http.impl.DNSMadeEasyRestClient;
-import com.netradius.dnsmadeeasy.util.DateUtils;
-import org.apache.commons.codec.digest.HmacUtils;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 
@@ -15,8 +17,8 @@ import java.io.IOException;
  */
 public class DNSMadeEasyClientTest {
 
-	private static DNSMadeEasyRestClient client = new DNSMadeEasyRestClient();
-	TestConfig config = new TestConfig();
+	private TestConfig config = new TestConfig();
+	private DNSMadeEasyRestClient client = new DNSMadeEasyRestClient(config.getUrl(), config.getApiKey(), config.getApiSecret());
 
 	@BeforeClass
 	public static void init() {
@@ -25,37 +27,33 @@ public class DNSMadeEasyClientTest {
 
 	@Test
 	public void testCreateDomain() throws IOException {
-		String requestDate = DateUtils.dateToStringInGMT();
-		String hexSecret = HmacUtils.hmacSha1Hex(config.getApiSecret(), requestDate);
-		client.createDomain("mytest3.com", config.getUrl(), config.getApiKey(), hexSecret, requestDate);
+		ManagedDNSResponse response = client.createDomain("mytest4.com");
+		assertTrue(response != null);
 	}
 
 	@Test
 	public void testGetDomains() throws IOException {
-		String requestDate = DateUtils.dateToStringInGMT();
-		String hexSecret = HmacUtils.hmacSha1Hex(config.getApiSecret(), requestDate);
-		client.getDomains(config.getUrl(), config.getApiKey(), hexSecret, requestDate);
+		ManagedDNSResponse response = client.getDomains();
+		assertTrue(response != null);
 	}
 
 	@Test
 	public void testDeleteDomain() throws IOException {
-		String requestDate = DateUtils.dateToStringInGMT();
-		String hexSecret = HmacUtils.hmacSha1Hex(config.getApiSecret(), requestDate);
-		client.deleteDomain("877900", config.getUrl(), config.getApiKey(), hexSecret, requestDate);
+		ManagedDNSResponse response =  client.deleteDomain("877900");
+		assertTrue(response != null);
+
 	}
 
 	@Test
 	public void testGetDomain() throws IOException {
-		String requestDate = DateUtils.dateToStringInGMT();
-		String hexSecret = HmacUtils.hmacSha1Hex(config.getApiSecret(), requestDate);
-		client.getDomain("877900", config.getUrl(), config.getApiKey(), hexSecret, requestDate);
+		DNSDomainResponse response = client.getDomain("877900");
+		assertTrue(response != null);
+
 	}
 
 	@Test
 	public void testUpdateDomainConfig() throws IOException {
-		String requestDate = DateUtils.dateToStringInGMT();
-		String hexSecret = HmacUtils.hmacSha1Hex(config.getApiSecret(), requestDate);
-		client.updateDomainConfiguration("877900", "9999", "", config.getUrl(), config.getApiKey(), hexSecret,
-				requestDate);
+		ManagedDNSResponse response =  client.updateDomainConfiguration("877900", "9999", "");
+		assertTrue(response != null);
 	}
 }
