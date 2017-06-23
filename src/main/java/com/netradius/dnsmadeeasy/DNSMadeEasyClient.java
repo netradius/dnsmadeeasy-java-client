@@ -1,8 +1,6 @@
 package com.netradius.dnsmadeeasy;
 
-import com.netradius.dnsmadeeasy.data.DNSDomainResponse;
-import com.netradius.dnsmadeeasy.data.ManagedDNSRequestJson;
-import com.netradius.dnsmadeeasy.data.ManagedDNSResponse;
+import com.netradius.dnsmadeeasy.data.*;
 import com.netradius.dnsmadeeasy.util.DateUtils;
 import com.netradius.dnsmadeeasy.util.HttpClient;
 
@@ -50,8 +48,8 @@ public class DNSMadeEasyClient {
 	/**
 	 * Creates a domain
 	 *
-	 * @param domainName name for the domain
-	 * @return
+	 * @param domainName name for the domain user is interested to create
+	 * @return if there is an error, error is populated or else null for data
 	 * @throws IOException
 	 */
 	public ManagedDNSResponse createDomain(String domainName) throws DNSMadeEasyException {
@@ -103,7 +101,8 @@ public class DNSMadeEasyClient {
 
 	public ManagedDNSResponse deleteDomain(String domainId) throws DNSMadeEasyException {
 		String requestDate = DateUtils.dateToStringInGMT();
-		HttpResponse response = client.delete(restUrl + "/dns/managed/" + domainId, domainId, apiKey, getSecretHash(requestDate), requestDate);
+		HttpResponse response = client.delete(restUrl + "/dns/managed/", getDeleteRequest(domainId), apiKey, getSecretHash(requestDate),
+				requestDate);
 		ManagedDNSResponse result = null;
 		if (response != null) {
 			try {
@@ -150,7 +149,7 @@ public class DNSMadeEasyClient {
 		if (templateId != null && templateId.length() > 0) {
 			domainRequest.setTemplateId(templateId);
 		}
-		String json = null;
+		String json;
 		try {
 			json = mapper.writeValueAsString(domainRequest);
 		} catch (IOException e) {
@@ -185,7 +184,7 @@ public class DNSMadeEasyClient {
 			domainRequest.setTemplateId(templateId);
 		}
 		domainRequest.setIds(ids);
-		String json = null;
+		String json;
 		try {
 			json = mapper.writeValueAsString(domainRequest);
 		} catch (IOException e) {
@@ -215,7 +214,7 @@ public class DNSMadeEasyClient {
 		settMapperProperties();
 		ManagedDNSRequestJson domainRequest = new ManagedDNSRequestJson();
 		domainRequest.setNames(domainNames);
-		String json = null;
+		String json;
 		try {
 			json = mapper.writeValueAsString(domainRequest);
 		} catch (IOException e) {
@@ -270,6 +269,143 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
+	public ManagedDNSRecordsResponse getDNSRecord(String domainId) throws DNSMadeEasyException {
+		String requestDate = DateUtils.dateToStringInGMT();
+		HttpResponse response = client.get(restUrl + "/dns/managed/" + domainId + "/records", apiKey,
+				getSecretHash(requestDate), requestDate);
+		ManagedDNSRecordsResponse result = null;
+		result = getManagedDNSRecordsResponse(domainId, response, result);
+		if (result != null) {
+			log.debug(result.toString());
+		}
+
+		return result;
+	}
+
+	public ManagedDNSRecordsResponse getDNSRecordByType(String domainId, String type) throws DNSMadeEasyException {
+		String requestDate = DateUtils.dateToStringInGMT();
+		HttpResponse response = client.get(restUrl + "/dns/managed/" + domainId + "/records?type=" + type, apiKey,
+				getSecretHash(requestDate), requestDate);
+		ManagedDNSRecordsResponse result = null;
+		result = getManagedDNSRecordsResponse(domainId, response, result);
+		if (result != null) {
+			log.debug(result.toString());
+		}
+
+		return result;
+	}
+
+	public ManagedDNSRecordsResponse getDNSRecordByTypeAndRecordName(String domainId, String type, String recordName) throws
+			DNSMadeEasyException {
+		String requestDate = DateUtils.dateToStringInGMT();
+		HttpResponse response = client.get(restUrl + "/dns/managed/" + domainId + "/records?recordName=" +
+				recordName + "&type=" + type, apiKey, getSecretHash(requestDate), requestDate);
+		ManagedDNSRecordsResponse result = null;
+		result = getManagedDNSRecordsResponse(domainId, response, result);
+		if (result != null) {
+			log.debug(result.toString());
+		}
+
+		return result;
+	}
+
+	public DNSDomainRecordResponse createDNSRecord(String domainId, String name, String type, String value,
+			String gtdLocation, String ttl) throws DNSMadeEasyException {
+		String json;
+		String requestDate = DateUtils.dateToStringInGMT();
+		DNSDomainRecordRequest dnsDomainRecordRequest = new DNSDomainRecordRequest();
+		dnsDomainRecordRequest.setName(name);
+		dnsDomainRecordRequest.setType(type);
+		dnsDomainRecordRequest.setValue(value);
+		dnsDomainRecordRequest.setGtdLocation(gtdLocation);
+		dnsDomainRecordRequest.setTtl(ttl);
+		try {
+			json = mapper.writeValueAsString(dnsDomainRecordRequest);
+		} catch (IOException e) {
+			log.error("Error occurred while preparing request to create a record for domain with id : " + domainId);
+			throw getError(e, e.getMessage(), HttpStatus.SC_BAD_REQUEST);
+		}
+		HttpResponse response = client.post(restUrl + "/dns/managed/" + domainId + "/records/", json, apiKey,
+				getSecretHash(requestDate), requestDate);
+		DNSDomainRecordResponse result = null;
+		if (response != null) {
+			try {
+				result = mapper.readValue(response.getEntity().getContent(), DNSDomainRecordResponse.class);
+			} catch (IOException e) {
+				log.error("Error occurred while creating DNS domain record for Domain: " + domainId);
+				throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
+			}
+		}
+		if (result != null) {
+			log.debug(result.toString());
+		}
+
+		return result;
+	}
+
+	public DNSDomainRecordResponse updateDNSRecord(String domainId, String name, String type, String value,
+				String gtdLocation, String ttl, Long id) throws DNSMadeEasyException {
+		String json;
+		String requestDate = DateUtils.dateToStringInGMT();
+		DNSDomainRecordRequest dnsDomainRecordRequest = new DNSDomainRecordRequest();
+		dnsDomainRecordRequest.setName(name);
+		dnsDomainRecordRequest.setType(type);
+		dnsDomainRecordRequest.setValue(value);
+		dnsDomainRecordRequest.setGtdLocation(gtdLocation);
+		dnsDomainRecordRequest.setTtl(ttl);
+		dnsDomainRecordRequest.setId(id);
+		try {
+			json = mapper.writeValueAsString(dnsDomainRecordRequest);
+		} catch (IOException e) {
+			log.error("Error occurred while preparing request to create a record for domain with id : " + domainId);
+			throw getError(e, e.getMessage(), HttpStatus.SC_BAD_REQUEST);
+		}
+		HttpResponse response = client.put(restUrl + "/dns/managed/" + domainId + "/records/" + id, json, apiKey,
+				getSecretHash(requestDate), requestDate);
+		DNSDomainRecordResponse result = null;
+		if (response != null) {
+			result = new DNSDomainRecordResponse();
+			if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+				result.setUpdateSuccess(true);
+			} else {
+				result.setUpdateSuccess(false);
+			}
+		}
+		if (result != null) {
+			log.debug(result.toString());
+		}
+
+		return result;
+	}
+
+
+	public boolean deleteManagedDNSRecord(String domainId, String recordId) throws DNSMadeEasyException {
+		String requestDate = DateUtils.dateToStringInGMT();
+		HttpResponse response = client.delete(restUrl + "/dns/managed/" + domainId + "/records/" + recordId, apiKey,
+				getSecretHash(requestDate), requestDate);
+		boolean result = false;
+		if (response != null) {
+			if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+				result = true;
+			}
+		}
+
+		return result;
+	}
+
+	private ManagedDNSRecordsResponse getManagedDNSRecordsResponse(String domainId, HttpResponse response,
+			ManagedDNSRecordsResponse result) throws DNSMadeEasyException {
+		if (response != null) {
+			try {
+				result = mapper.readValue(response.getEntity().getContent(), ManagedDNSRecordsResponse.class);
+			} catch (IOException e) {
+				log.error("Error occurred while getting DNS domain records : " + domainId);
+				throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
+			}
+		}
+		return result;
+	}
+
 	private DNSDomainResponse[] getDomainResponse(String domainIds) {
 		String retDomainIds = domainIds.replace("[", "");
 		retDomainIds = retDomainIds.replace("]", "");
@@ -300,7 +436,7 @@ public class DNSMadeEasyClient {
 	}
 
 	private String getDeleteRequest(String domainId) {
-		return "'{[" + domainId + "\"]}'";
+		return "[" + domainId + "]";
 	}
 
 	private String getSecretHash(String requestDate) {

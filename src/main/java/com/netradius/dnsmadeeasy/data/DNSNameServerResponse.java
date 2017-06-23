@@ -13,6 +13,7 @@ import java.io.Serializable;
 @Data
 @JsonIgnoreProperties( ignoreUnknown = true )
 public class DNSNameServerResponse implements Serializable {
+	private static final long serialVersionUID = 132604512294009105L;
 
 	private String fqdn;
 	private String ipv4;

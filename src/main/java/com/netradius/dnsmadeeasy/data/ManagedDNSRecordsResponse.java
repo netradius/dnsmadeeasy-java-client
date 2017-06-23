@@ -14,9 +14,12 @@ import java.io.Serializable;
 
 @Data
 @JsonIgnoreProperties( ignoreUnknown = true )
-public class ManagedDNSResponse implements Serializable {
-	private static final long serialVersionUID = -7700939739782156853L;
+public class ManagedDNSRecordsResponse implements Serializable {
+	private static final long serialVersionUID = -2218375262213914941L;
 
 	private String [] error;
-	private DNSDomainResponse [] data;
+	private DNSDomainRecordResponse [] data;
+	private String page;
+	private String totalPages;
+	private String totalRecords;
 }

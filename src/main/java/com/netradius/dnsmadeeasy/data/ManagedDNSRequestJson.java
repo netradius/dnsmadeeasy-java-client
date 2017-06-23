@@ -13,8 +13,7 @@ import java.io.Serializable;
 @Data
 @JsonIgnoreProperties( ignoreUnknown = true )
 public class ManagedDNSRequestJson implements Serializable {
-
-	private static final long serialVersionUID = -7156545634908767685L;
+	private static final long serialVersionUID = -8477554856279865763L;
 
 	String name;
 	String vanityId;

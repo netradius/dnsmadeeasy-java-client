@@ -1,6 +1,8 @@
 package com.netradius.dnsmadeeasy;
 
+import com.netradius.dnsmadeeasy.data.DNSDomainRecordResponse;
 import com.netradius.dnsmadeeasy.data.DNSDomainResponse;
+import com.netradius.dnsmadeeasy.data.ManagedDNSRecordsResponse;
 import com.netradius.dnsmadeeasy.data.ManagedDNSResponse;
 
 import org.junit.BeforeClass;
@@ -74,4 +76,41 @@ public class DNSMadeEasyClientTest {
 		assertTrue(response != null);
 	}
 
+	@Test
+	public void testGetDNSDomainRecords() throws DNSMadeEasyException {
+		ManagedDNSRecordsResponse response =  client.getDNSRecord("877900");
+		assertTrue(response != null);
+	}
+
+	@Test
+	public void testGetDNSDomainRecordsByType() throws DNSMadeEasyException {
+		ManagedDNSRecordsResponse response =  client.getDNSRecordByType("877900", "A");
+		assertTrue(response != null);
+	}
+
+	@Test
+	public void testGetDNSDomainRecordsByTypeAndRecordName() throws DNSMadeEasyException {
+		ManagedDNSRecordsResponse response =  client.getDNSRecordByTypeAndRecordName("877900", "A", "site1");
+		assertTrue(response != null);
+	}
+
+	@Test
+	public void testDeleteRecord() throws DNSMadeEasyException {
+		boolean response =  client.deleteManagedDNSRecord("877900","10154755");
+//		assertTrue(response);
+	}
+
+	@Test
+	public void testCreateDNSRecord() throws DNSMadeEasyException {
+		DNSDomainRecordResponse response =  client.createDNSRecord("877900","site6_1", "A",
+				"0.0.0.0", "DEFAULT", "86400");
+		assertTrue(response != null);
+	}
+
+	@Test
+	public void testUpdateDNSRecord() throws DNSMadeEasyException {
+		DNSDomainRecordResponse response =  client.updateDNSRecord("877900","site4_1_1", "A",
+				"0.0.0.1", "DEFAULT", "86401", (long) 10154417);
+		assertTrue(response != null);
+	}
 }

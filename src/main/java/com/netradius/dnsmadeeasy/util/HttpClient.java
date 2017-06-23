@@ -3,6 +3,7 @@ package com.netradius.dnsmadeeasy.util;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
@@ -75,7 +76,7 @@ public class HttpClient {
 
 	public HttpResponse delete(String url, String deleteRequest, String apiKey, String secretKeyHash, String requestDate) {
 		CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-		HttpDeleteWithBody deleteWithBody = getHttpDelete(url, apiKey, secretKeyHash, requestDate);
+		HttpDeleteWithBody deleteWithBody = getHttpDeleteWithBody(url, apiKey, secretKeyHash, requestDate);
 		StringEntity entity = new StringEntity( deleteRequest, "UTF-8");
 		entity.setContentType("application/json");
 		deleteWithBody.setEntity(entity);
@@ -83,7 +84,7 @@ public class HttpClient {
 		try {
 			response = httpClient.execute(deleteWithBody);
 			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-				log.error("Error occurred while trying to post to Rest API. ", response.getStatusLine().getReasonPhrase());
+				log.error("Error occurred while trying to use Delete API. ", response.getStatusLine().getReasonPhrase());
 			}
 		}
 		catch(IOException e) {
@@ -92,6 +93,21 @@ public class HttpClient {
 		return response;
 	}
 
+	public HttpResponse delete(String url, String apiKey, String secretKeyHash, String requestDate) {
+		CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+		HttpDelete delete = getHttpDelete(url, apiKey, secretKeyHash, requestDate);
+		HttpResponse response = null;
+		try {
+			response = httpClient.execute(delete);
+			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+				log.error("Error occurred while trying to use Delete. ", response.getStatusLine().getReasonPhrase());
+			}
+		}
+		catch(IOException e) {
+			log.error("Unable to connect to  " + e.getMessage(), e);
+		}
+		return response;
+	}
 	public HttpResponse put(String url, String json, String apiKey, String secretKeyHash, String requestDate) {
 
 		CloseableHttpClient httpClient = HttpClientBuilder.create().build();
@@ -124,7 +140,7 @@ public class HttpClient {
 		return put;
 	}
 
-	private HttpDeleteWithBody getHttpDelete(String url, String apiKey, String secretKeyHash, String requestDate) {
+	private HttpDeleteWithBody getHttpDeleteWithBody(String url, String apiKey, String secretKeyHash, String requestDate) {
 		HttpDeleteWithBody deleteWithBody = new HttpDeleteWithBody(url);
 		deleteWithBody.setHeader("content-type", "application/json");
 		deleteWithBody.setHeader("accept", "application/json");
@@ -133,6 +149,17 @@ public class HttpClient {
 		deleteWithBody.setHeader("x-dnsme-requestDate", requestDate);
 		return deleteWithBody;
 	}
+
+	private HttpDelete getHttpDelete(String url, String apiKey, String secretKeyHash, String requestDate) {
+		HttpDelete delete = new HttpDelete(url);
+		delete.setHeader("content-type", "application/json");
+		delete.setHeader("accept", "application/json");
+		delete.setHeader("x-dnsme-apiKey", apiKey);
+		delete.setHeader("x-dnsme-hmac", secretKeyHash);
+		delete.setHeader("x-dnsme-requestDate", requestDate);
+		return delete;
+	}
+
 
 
 	private HttpGet getHttpGet(String url, String apiKey, String secretKeyHash, String requestDate) {
