@@ -1,12 +1,11 @@
-package com.netradius.dnsmadeeasy.http.impl;
+package com.netradius.dnsmadeeasy;
 
 import com.netradius.dnsmadeeasy.data.DNSDomainResponse;
 import com.netradius.dnsmadeeasy.data.ManagedDNSRequestJson;
 import com.netradius.dnsmadeeasy.data.ManagedDNSResponse;
 import com.netradius.dnsmadeeasy.util.DateUtils;
 import com.netradius.dnsmadeeasy.util.HttpClient;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -21,7 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 /**
  * Client that talks to DNSMadeEasy server using Rest
  *
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Data
-public class DNSMadeEasyRestClient  {
+public class DNSMadeEasyClient {
 
 	private static final ObjectMapper mapper = new ObjectMapper();
 	private static final HttpClient client = new HttpClient();
@@ -41,22 +41,39 @@ public class DNSMadeEasyRestClient  {
 		mapper.setSerializationInclusion(Inclusion.NON_NULL);
 	}
 
-	public DNSMadeEasyRestClient(String restUrl, String apiKey, String apiSecret) {
+	public DNSMadeEasyClient(String restUrl, String apiKey, String apiSecret) {
 		this.restUrl = restUrl;
 		this.apiKey = apiKey;
 		this.apiSecret = apiSecret;
 	}
 
-	public ManagedDNSResponse createDomain(String domainName) throws IOException {
+	/**
+	 * Creates a domain
+	 *
+	 * @param domainName name for the domain
+	 * @return
+	 * @throws IOException
+	 */
+	public ManagedDNSResponse createDomain(String domainName) throws DNSMadeEasyException {
 		ManagedDNSResponse result = null;
 		settMapperProperties();
 		ManagedDNSRequestJson domainRequest = new ManagedDNSRequestJson();
 		domainRequest.setName(domainName);
-		String json = mapper.writeValueAsString(domainRequest);
+		String json = null;
+		try {
+			json = mapper.writeValueAsString(domainRequest);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.post(restUrl + "/dns/managed/", json, apiKey, getSecretHash(requestDate), requestDate);
 		if (response != null) {
-			result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
+			try {
+				result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
+			} catch (IOException e) {
+				log.error("Error occurred while creating domain : " + domainName);
+				throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
+			}
 		}
 		if (result != null) {
 			log.debug(result.toString());
@@ -65,13 +82,17 @@ public class DNSMadeEasyRestClient  {
 		return result;
 	}
 
-	public ManagedDNSResponse getDomains()
-			throws IOException {
+	public ManagedDNSResponse getDomains() throws DNSMadeEasyException {
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.get(restUrl + "/dns/managed/", apiKey, getSecretHash(requestDate), requestDate);
 		ManagedDNSResponse result = null;
 		if (response != null) {
-			result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
+			try {
+				result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
+			} catch (IOException e) {
+				log.error("Error occurred while getting domains " );
+				throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
+			}
 		}
 		if (result != null) {
 			log.debug(result.toString());
@@ -80,12 +101,17 @@ public class DNSMadeEasyRestClient  {
 		return result;
 	}
 
-	public ManagedDNSResponse deleteDomain(String domainId) throws IOException {
+	public ManagedDNSResponse deleteDomain(String domainId) throws DNSMadeEasyException {
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.delete(restUrl + "/dns/managed/" + domainId, domainId, apiKey, getSecretHash(requestDate), requestDate);
 		ManagedDNSResponse result = null;
 		if (response != null) {
-			result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
+			try {
+				result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
+			} catch (IOException e) {
+				log.error("Error occurred while deleting domain : " + domainId);
+				throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
+			}
 		}
 		if (result != null) {
 			log.debug(result.toString());
@@ -94,13 +120,18 @@ public class DNSMadeEasyRestClient  {
 		return result;
 	}
 
-	public DNSDomainResponse getDomain(String domainId) throws IOException {
+	public DNSDomainResponse getDomain(String domainId) throws DNSMadeEasyException {
 		String requestDate = DateUtils.dateToStringInGMT();
-		HttpResponse response = client.get(restUrl + "/dns/managed/" + getDeleteRequest(domainId), apiKey, getSecretHash(requestDate), requestDate);
+		HttpResponse response = client.get(restUrl + "/dns/managed/" + domainId, apiKey, getSecretHash(requestDate), requestDate);
 		DNSDomainResponse result = null;
 
 		if (response != null) {
-			result = mapper.readValue(response.getEntity().getContent(), DNSDomainResponse.class);
+			try {
+				result = mapper.readValue(response.getEntity().getContent(), DNSDomainResponse.class);
+			} catch (IOException e) {
+				log.error("Error occurred while getting info for domain : " + domainId);
+				throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
+			}
 		}
 		if (result != null) {
 			log.debug(result.toString());
@@ -109,7 +140,7 @@ public class DNSMadeEasyRestClient  {
 		return result;
 	}
 
-	public ManagedDNSResponse updateDomainConfiguration(String domainId, String vanityId, String templateId) throws IOException {
+	public ManagedDNSResponse updateDomainConfiguration(String domainId, String vanityId, String templateId) throws DNSMadeEasyException {
 		ManagedDNSResponse result = null;
 		settMapperProperties();
 		ManagedDNSRequestJson domainRequest = new ManagedDNSRequestJson();
@@ -119,11 +150,22 @@ public class DNSMadeEasyRestClient  {
 		if (templateId != null && templateId.length() > 0) {
 			domainRequest.setTemplateId(templateId);
 		}
-		String json = mapper.writeValueAsString(domainRequest);
+		String json = null;
+		try {
+			json = mapper.writeValueAsString(domainRequest);
+		} catch (IOException e) {
+			log.error("Error occurred while preparing request to update info for domain : " + domainId);
+			throw getError(e, e.getMessage(), HttpStatus.SC_BAD_REQUEST);
+		}
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.put(restUrl + "/dns/managed/" + domainId, json, apiKey, getSecretHash(requestDate), requestDate);
 		if (response != null) {
-			result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
+			try {
+				result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
+			} catch (IOException e) {
+				log.error("Error occurred while updating info for domain : " + domainId);
+				throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
+			}
 		}
 		if (result != null) {
 			log.debug(result.toString());
@@ -132,7 +174,7 @@ public class DNSMadeEasyRestClient  {
 		return result;
 	}
 
-	public ManagedDNSResponse updateMultipleDomainConfiguration(String [] ids, String vanityId, String templateId) throws IOException {
+	public ManagedDNSResponse updateMultipleDomainConfiguration(String [] ids, String vanityId, String templateId) throws DNSMadeEasyException {
 		ManagedDNSResponse result = null;
 		settMapperProperties();
 		ManagedDNSRequestJson domainRequest = new ManagedDNSRequestJson();
@@ -143,11 +185,22 @@ public class DNSMadeEasyRestClient  {
 			domainRequest.setTemplateId(templateId);
 		}
 		domainRequest.setIds(ids);
-		String json = mapper.writeValueAsString(domainRequest);
+		String json = null;
+		try {
+			json = mapper.writeValueAsString(domainRequest);
+		} catch (IOException e) {
+			log.error("Error occurred while preparing request to update info for domains : " + ids);
+			throw getError(e, e.getMessage(), HttpStatus.SC_BAD_REQUEST);
+		}
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.put(restUrl + "/dns/managed", json, apiKey, getSecretHash(requestDate), requestDate);
 		if (response != null) {
-			result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
+			try {
+				result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
+			} catch (IOException e) {
+				log.error("Error occurred while updating info for domains : " + ids);
+				throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
+			}
 		}
 		if (result != null) {
 			log.debug(result.toString());
@@ -157,20 +210,57 @@ public class DNSMadeEasyRestClient  {
 	}
 
 
-	public ManagedDNSResponse createDomains(String [] domainNames) throws IOException {
+	public ManagedDNSResponse createDomains(String [] domainNames) throws DNSMadeEasyException {
 		ManagedDNSResponse result = new ManagedDNSResponse();
 		settMapperProperties();
 		ManagedDNSRequestJson domainRequest = new ManagedDNSRequestJson();
 		domainRequest.setNames(domainNames);
-		String json = mapper.writeValueAsString(domainRequest);
+		String json = null;
+		try {
+			json = mapper.writeValueAsString(domainRequest);
+		} catch (IOException e) {
+			log.error("Error occurred while preparing request to create domains : " + domainNames);
+			throw getError(e, e.getMessage(), HttpStatus.SC_BAD_REQUEST);
+		}
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.post(restUrl + "/dns/managed", json, apiKey, getSecretHash(requestDate), requestDate);
 		if (response != null) {
 			if (response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED) {
-				String domainIds = readStream(response.getEntity().getContent());
+				String domainIds;
+				try {
+					domainIds = readStream(response.getEntity().getContent());
+				} catch (IOException e) {
+					log.error("Error occurred while creating domains : " + domainNames);
+					throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
+				}
 				result.setData(getDomainResponse(domainIds));
 			} else {
+				try {
+					result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
+				} catch (IOException e) {
+					log.error("Error occurred while creating domains : " + domainNames);
+					throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
+				}
+			}
+		}
+		if (result != null) {
+			log.debug(result.toString());
+		}
+
+		return result;
+	}
+
+	public ManagedDNSResponse deleteDomains(String [] domainIds) throws DNSMadeEasyException {
+		String requestDate = DateUtils.dateToStringInGMT();
+		HttpResponse response = client.delete(restUrl + "/dns/managed", getDeleteRequest(domainIds), apiKey, getSecretHash
+				(requestDate), requestDate);
+		ManagedDNSResponse result = null;
+		if (response != null) {
+			try {
 				result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
+			} catch (IOException e) {
+				log.error("Error occurred while deleting domains : " + domainIds);
+				throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
 			}
 		}
 		if (result != null) {
@@ -190,26 +280,10 @@ public class DNSMadeEasyRestClient  {
 			dnsDomainResponse.setName(domainId);
 			responses.add(dnsDomainResponse);
 		}
-
 		DNSDomainResponse[] responseArray = new DNSDomainResponse[responses.size()];
 		responseArray = responses.toArray(responseArray);
 
 		return responseArray;
-	}
-
-	public ManagedDNSResponse deleteDomains(String [] domainIds) throws IOException {
-		String requestDate = DateUtils.dateToStringInGMT();
-		HttpResponse response = client.delete(restUrl + "/dns/managed", getDeleteRequest(domainIds), apiKey, getSecretHash
-				(requestDate), requestDate);
-		ManagedDNSResponse result = null;
-		if (response != null) {
-			result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
-		}
-		if (result != null) {
-			log.debug(result.toString());
-		}
-
-		return result;
 	}
 
 	private String getDeleteRequest(String[] domainIds) {
@@ -237,6 +311,10 @@ public class DNSMadeEasyRestClient  {
 		try (BufferedReader buffer = new BufferedReader(new InputStreamReader(input))) {
 			return buffer.lines().collect(Collectors.joining("\n"));
 		}
+	}
+
+	private DNSMadeEasyException getError(Exception x, String message, int status) {
+		return new DNSMadeEasyException(status, message , x);
 	}
 
 }
