@@ -1,12 +1,13 @@
 package com.netradius.dnsmadeeasy;
 
-import com.netradius.dnsmadeeasy.data.DNSDomainRecordResponse;
-import com.netradius.dnsmadeeasy.data.DNSDomainResponse;
-import com.netradius.dnsmadeeasy.data.ManagedDNSRecordsResponse;
-import com.netradius.dnsmadeeasy.data.ManagedDNSResponse;
+import com.netradius.dnsmadeeasy.data.*;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.Assert.*;
 
 
@@ -97,20 +98,78 @@ public class DNSMadeEasyClientTest {
 	@Test
 	public void testDeleteRecord() throws DNSMadeEasyException {
 		boolean response =  client.deleteManagedDNSRecord("877900","10154755");
-//		assertTrue(response);
+	//	assertTrue(response);
 	}
 
 	@Test
 	public void testCreateDNSRecord() throws DNSMadeEasyException {
-		DNSDomainRecordResponse response =  client.createDNSRecord("877900","site6_1", "A",
-				"0.0.0.0", "DEFAULT", "86400");
+		DNSDomainRecordResponse response =  client.createDNSRecord("877900","site1", "A",
+				"0.0.0.0", "DEFAULT", 86400);
 		assertTrue(response != null);
 	}
 
 	@Test
 	public void testUpdateDNSRecord() throws DNSMadeEasyException {
-		DNSDomainRecordResponse response =  client.updateDNSRecord("877900","site4_1_1", "A",
-				"0.0.0.1", "DEFAULT", "86401", (long) 10154417);
+		boolean response =  client.updateDNSRecord("877900","site1", "A",
+				"0.0.0.9", "DEFAULT", 1800,  10154864);
+		//assertTrue(response);
+	}
+
+	@Test
+	public void testCreateDNSMultiRecords() throws DNSMadeEasyException {
+		DNSDomainRecordRequest dnsDomainRecordRequest1 = new DNSDomainRecordRequest();
+		dnsDomainRecordRequest1.setName("site2");
+		dnsDomainRecordRequest1.setType("A");
+		dnsDomainRecordRequest1.setValue("0.0.0.2");
+		dnsDomainRecordRequest1.setGtdLocation("DEFAULT");
+		dnsDomainRecordRequest1.setTtl(1800);
+
+		DNSDomainRecordRequest dnsDomainRecordRequest2 = new DNSDomainRecordRequest();
+		dnsDomainRecordRequest2.setName("site3");
+		dnsDomainRecordRequest2.setType("A");
+		dnsDomainRecordRequest2.setValue("0.0.0.3");
+		dnsDomainRecordRequest2.setGtdLocation("DEFAULT");
+		dnsDomainRecordRequest2.setTtl(1800);
+
+		List<DNSDomainRecordRequest> recordRequestList = new ArrayList<>();
+		recordRequestList.add(dnsDomainRecordRequest1);
+		recordRequestList.add(dnsDomainRecordRequest2);
+
+		DNSDomainRecordResponse[] response =  client.createDNSMultiRecord("877900",recordRequestList);
 		assertTrue(response != null);
+	}
+
+	@Test
+	public void updateDNSMultiRecords() throws DNSMadeEasyException {
+		DNSDomainRecordRequest dnsDomainRecordRequest1 = new DNSDomainRecordRequest();
+		dnsDomainRecordRequest1.setName("site2");
+		dnsDomainRecordRequest1.setType("A");
+		dnsDomainRecordRequest1.setValue("1.0.0.2");
+		dnsDomainRecordRequest1.setGtdLocation("DEFAULT");
+		dnsDomainRecordRequest1.setTtl(1800);
+		dnsDomainRecordRequest1.setId(10154872);
+
+		DNSDomainRecordRequest dnsDomainRecordRequest2 = new DNSDomainRecordRequest();
+		dnsDomainRecordRequest2.setName("site3");
+		dnsDomainRecordRequest2.setType("A");
+		dnsDomainRecordRequest2.setValue("1.0.0.3");
+		dnsDomainRecordRequest2.setGtdLocation("DEFAULT");
+		dnsDomainRecordRequest2.setTtl(1800);
+		dnsDomainRecordRequest2.setId(10154871);
+
+		List<DNSDomainRecordRequest> recordRequestList = new ArrayList<>();
+		recordRequestList.add(dnsDomainRecordRequest1);
+		recordRequestList.add(dnsDomainRecordRequest2);
+
+		boolean response =  client.updateDNSMultiRecord("877900",recordRequestList);
+	//	assertTrue(response );
+	}
+
+
+	@Test
+	public void testDeleteRecords() throws DNSMadeEasyException {
+		String[] recordIds = {"" , "1", "2"};
+		boolean response =  client.deleteMultiDNSRecords("877900", recordIds);
+			assertTrue(response);
 	}
 }

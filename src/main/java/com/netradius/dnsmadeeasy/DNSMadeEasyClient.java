@@ -309,8 +309,19 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
+	/**
+	 *
+	 * @param domainId
+	 * @param name
+	 * @param type
+	 * @param value
+	 * @param gtdLocation
+	 * @param ttl
+	 * @return The Record details in the DNSDomainRecordResponse when successful or error
+	 * @throws DNSMadeEasyException
+	 */
 	public DNSDomainRecordResponse createDNSRecord(String domainId, String name, String type, String value,
-			String gtdLocation, String ttl) throws DNSMadeEasyException {
+			String gtdLocation, long ttl) throws DNSMadeEasyException {
 		String json;
 		String requestDate = DateUtils.dateToStringInGMT();
 		DNSDomainRecordRequest dnsDomainRecordRequest = new DNSDomainRecordRequest();
@@ -343,8 +354,20 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
-	public DNSDomainRecordResponse updateDNSRecord(String domainId, String name, String type, String value,
-				String gtdLocation, String ttl, Long id) throws DNSMadeEasyException {
+	/**
+	 *
+	 * @param domainId
+	 * @param name
+	 * @param type
+	 * @param value
+	 * @param gtdLocation
+	 * @param ttl
+	 * @param id
+	 * @return true when update successful and false upon update fails
+	 * @throws DNSMadeEasyException
+	 */
+	public boolean updateDNSRecord(String domainId, String name, String type, String value,
+				String gtdLocation, long ttl, long id) throws DNSMadeEasyException {
 		String json;
 		String requestDate = DateUtils.dateToStringInGMT();
 		DNSDomainRecordRequest dnsDomainRecordRequest = new DNSDomainRecordRequest();
@@ -362,20 +385,15 @@ public class DNSMadeEasyClient {
 		}
 		HttpResponse response = client.put(restUrl + "/dns/managed/" + domainId + "/records/" + id, json, apiKey,
 				getSecretHash(requestDate), requestDate);
-		DNSDomainRecordResponse result = null;
 		if (response != null) {
-			result = new DNSDomainRecordResponse();
 			if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-				result.setUpdateSuccess(true);
+				return true;
 			} else {
-				result.setUpdateSuccess(false);
+				return false;
 			}
 		}
-		if (result != null) {
-			log.debug(result.toString());
-		}
 
-		return result;
+		return false;
 	}
 
 
@@ -391,6 +409,108 @@ public class DNSMadeEasyClient {
 		}
 
 		return result;
+	}
+
+	public DNSDomainRecordResponse[] createDNSMultiRecord(String domainId, List<DNSDomainRecordRequest> multiRecords)
+			throws DNSMadeEasyException {
+		String json;
+		String requestDate = DateUtils.dateToStringInGMT();
+		try {
+			json = mapper.writeValueAsString(multiRecords);
+		} catch (IOException e) {
+			log.error("Error occurred while preparing request to create multi records request for domain with id : " +
+					domainId);
+			throw getError(e, e.getMessage(), HttpStatus.SC_BAD_REQUEST);
+		}
+		HttpResponse response = client.post(restUrl + "/dns/managed/" + domainId + "/records/createMulti", json,
+				apiKey, getSecretHash(requestDate), requestDate);
+		DNSDomainRecordResponse[] result = null;
+		if (response != null) {
+			try {
+				if (response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED) {
+					result = mapper.readValue(response.getEntity().getContent(), DNSDomainRecordResponse[].class);
+				} else if (response.getStatusLine().getStatusCode() == HttpStatus.SC_BAD_REQUEST) {
+					DNSDomainRecordResponse response1 = mapper.readValue(response.getEntity().getContent(),
+							DNSDomainRecordResponse.class);
+					result = new DNSDomainRecordResponse[] {response1};
+				}
+			} catch (IOException e) {
+				log.error("Error occurred while creating multi DNS domain record for Domain: " + domainId);
+				throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
+			}
+		}
+		if (result != null) {
+			log.debug(result.toString());
+		}
+
+		return result;
+	}
+
+	/**
+	 *
+	 * @param domainId
+	 * @param multiRecords
+	 * @return
+	 * @throws DNSMadeEasyException
+	 */
+	public boolean updateDNSMultiRecord(String domainId, List<DNSDomainRecordRequest> multiRecords)
+			throws DNSMadeEasyException {
+		String json;
+		String requestDate = DateUtils.dateToStringInGMT();
+		try {
+			json = mapper.writeValueAsString(multiRecords);
+		} catch (IOException e) {
+			log.error("Error occurred while preparing request to update multi records request for domain with id : " +
+					domainId);
+			throw getError(e, e.getMessage(), HttpStatus.SC_BAD_REQUEST);
+		}
+		HttpResponse response = client.put(restUrl + "/dns/managed/" + domainId + "/records/updateMulti", json,
+				apiKey, getSecretHash(requestDate), requestDate);
+		if (response != null) {
+			if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+				return true;
+			} else if (response.getStatusLine().getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+				return false;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 *
+	 * @param domainId
+	 * @param recordIds
+	 * @return
+	 * @throws DNSMadeEasyException
+	 */
+	public boolean deleteMultiDNSRecords(String domainId, String[] recordIds) throws DNSMadeEasyException {
+		String requestDate = DateUtils.dateToStringInGMT();
+		HttpResponse response = client.delete(restUrl + "/dns/managed/" + domainId + "/records?" +
+				getRecordIds(recordIds), apiKey, getSecretHash(requestDate), requestDate);
+		boolean result = false;
+		if (response != null) {
+			if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+				result = true;
+			}
+		}
+
+		return result;
+	}
+
+	private String getRecordIds(String[] recordIds) {
+		StringBuilder recordIdsStr = new StringBuilder();
+		if (recordIds != null) {
+			for (int i = 0; i <recordIds.length; i ++) {
+				if (i == 0) {
+					recordIdsStr.append("ids=");
+				} else {
+					recordIdsStr.append("&ids=");
+				}
+				recordIdsStr.append(recordIds[i]);
+			}
+		}
+
+		return recordIdsStr.toString();
 	}
 
 	private ManagedDNSRecordsResponse getManagedDNSRecordsResponse(String domainId, HttpResponse response,
