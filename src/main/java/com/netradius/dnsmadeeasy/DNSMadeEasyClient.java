@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+
 /**
  * Client that talks to DNSMadeEasy server using Rest
  *
@@ -50,7 +51,7 @@ public class DNSMadeEasyClient {
 	 *
 	 * @param domainName name for the domain user is interested to create
 	 * @return if there is an error, error is populated or else null for data
-	 * @throws IOException
+	 * @throws DNSMadeEasyException thrown in case of an error
 	 */
 	public ManagedDNSResponse createDomain(String domainName) throws DNSMadeEasyException {
 		ManagedDNSResponse result = null;
@@ -80,6 +81,12 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
+	/**
+	 * Fetches all the domains under the account
+	 *
+	 * @return All the domains information
+	 * @throws DNSMadeEasyException thrown in case of an error
+	 */
 	public ManagedDNSResponse getDomains() throws DNSMadeEasyException {
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.get(restUrl + "/dns/managed/", apiKey, getSecretHash(requestDate), requestDate);
@@ -99,6 +106,13 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
+	/**
+	 * Deletes the domain for the given domain id, if the domain is allowed to be deleted
+	 *
+	 * @param domainId of the domain to be deleted
+	 * @return nothing if successful or error in case the delete is not allowed
+	 * @throws DNSMadeEasyException thrown in case of an error
+	 */
 	public ManagedDNSResponse deleteDomain(String domainId) throws DNSMadeEasyException {
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.delete(restUrl + "/dns/managed/", getDeleteRequest(domainId), apiKey, getSecretHash(requestDate),
@@ -119,7 +133,14 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
-	public DNSDomainResponse getDomain(String domainId) throws DNSMadeEasyException {
+	/**
+	 * Fetches the domain information
+	 *
+	 * @param domainId The domain user is interested in
+	 * @return Domain information if found
+	 * @throws DNSMadeEasyException thrown in case of an error
+	 */
+	public DNSDomainResponse getDomain(long domainId) throws DNSMadeEasyException {
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.get(restUrl + "/dns/managed/" + domainId, apiKey, getSecretHash(requestDate), requestDate);
 		DNSDomainResponse result = null;
@@ -139,7 +160,18 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
-	public ManagedDNSResponse updateDomainConfiguration(String domainId, String vanityId, String templateId) throws DNSMadeEasyException {
+	/**
+	 * Updates the domain config data like the vanity id or template id if valid data sent
+	 * otherwise reports the error
+	 *
+	 * @param domainId The domain user is interested in
+	 * @param vanityId A valid vanity id
+	 * @param templateId A valid template id
+	 * @return Error if the sent ids are invalid
+	 * @throws DNSMadeEasyException thrown in case of an error
+	 */
+	public ManagedDNSResponse updateDomainConfiguration(long domainId, String vanityId, String templateId) throws
+			DNSMadeEasyException {
 		ManagedDNSResponse result = null;
 		settMapperProperties();
 		ManagedDNSRequestJson domainRequest = new ManagedDNSRequestJson();
@@ -173,6 +205,15 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
+	/**
+	 * Updates multiple the domains config data like the vanity id or template id if valid data sent
+	 * otherwise reports the error
+	 * @param ids identifiers for multiple domains
+	 * @param vanityId a valid vanity id
+	 * @param templateId a valid template id
+	 * @return Error if the sent ids are invalid
+	 * @throws DNSMadeEasyException thrown in case of an error
+	 */
 	public ManagedDNSResponse updateMultipleDomainConfiguration(String [] ids, String vanityId, String templateId) throws DNSMadeEasyException {
 		ManagedDNSResponse result = null;
 		settMapperProperties();
@@ -208,7 +249,13 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
-
+	/**
+	 * Create Multiple domains
+	 *
+	 * @param domainNames for which new domains to be created
+	 * @return Domain ids of new created domains or error if unsuccessful
+	 * @throws DNSMadeEasyException thrown in case of an error
+	 */
 	public ManagedDNSResponse createDomains(String [] domainNames) throws DNSMadeEasyException {
 		ManagedDNSResponse result = new ManagedDNSResponse();
 		settMapperProperties();
@@ -249,6 +296,13 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
+	/**
+	 * Delete Multiple domains
+	 *
+	 * @param domainIds list of domain ids to be deleted
+	 * @return Nothing if successful or error when
+	 * @throws DNSMadeEasyException thrown in case of an error
+	 */
 	public ManagedDNSResponse deleteDomains(String [] domainIds) throws DNSMadeEasyException {
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.delete(restUrl + "/dns/managed", getDeleteRequest(domainIds), apiKey, getSecretHash
@@ -269,7 +323,14 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
-	public ManagedDNSRecordsResponse getDNSRecord(String domainId) throws DNSMadeEasyException {
+	/**
+	 * Get the records for the domain
+	 *
+	 * @param domainId The domain user is interested in
+	 * @return Records if any under the domain
+	 * @throws DNSMadeEasyException thrown in case of an error
+	 */
+	public ManagedDNSRecordsResponse getDNSRecord(long domainId) throws DNSMadeEasyException {
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.get(restUrl + "/dns/managed/" + domainId + "/records", apiKey,
 				getSecretHash(requestDate), requestDate);
@@ -282,7 +343,15 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
-	public ManagedDNSRecordsResponse getDNSRecordByType(String domainId, String type) throws DNSMadeEasyException {
+	/**
+	 * Get records by type for a domain
+	 *
+	 * @param domainId The domain user is interested in
+	 * @param type  the type of record to be fetched
+	 * @return record details if found
+	 * @throws DNSMadeEasyException thrown in case of an error
+	 */
+	public ManagedDNSRecordsResponse getDNSRecordByType(long domainId, String type) throws DNSMadeEasyException {
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.get(restUrl + "/dns/managed/" + domainId + "/records?type=" + type, apiKey,
 				getSecretHash(requestDate), requestDate);
@@ -295,8 +364,17 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
-	public ManagedDNSRecordsResponse getDNSRecordByTypeAndRecordName(String domainId, String type, String recordName) throws
-			DNSMadeEasyException {
+	/**
+	 * Fetch a record under a domain for given type and record name
+	 *
+	 * @param domainId The domain user is interested in
+	 * @param type the type of record to be fetched
+	 * @param recordName name of the record associated with domain
+	 * @return record details if found
+	 * @throws DNSMadeEasyException thrown in case of an error
+	 */
+	public ManagedDNSRecordsResponse getDNSRecordByTypeAndRecordName(long domainId, String type, String recordName)
+			throws DNSMadeEasyException {
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.get(restUrl + "/dns/managed/" + domainId + "/records?recordName=" +
 				recordName + "&type=" + type, apiKey, getSecretHash(requestDate), requestDate);
@@ -310,17 +388,18 @@ public class DNSMadeEasyClient {
 	}
 
 	/**
+	 * Creates a record under a specified domain
 	 *
-	 * @param domainId
-	 * @param name
-	 * @param type
-	 * @param value
-	 * @param gtdLocation
-	 * @param ttl
+	 * @param domainId The domain user is interested in
+	 * @param name name for the record
+	 * @param type value for the type for the record, eg. 'A
+	 * @param value the record value
+	 * @param gtdLocation the GTD location, eg. 'DEFAULT'
+	 * @param ttl time to live
 	 * @return The Record details in the DNSDomainRecordResponse when successful or error
 	 * @throws DNSMadeEasyException
 	 */
-	public DNSDomainRecordResponse createDNSRecord(String domainId, String name, String type, String value,
+	public DNSDomainRecordResponse createDNSRecord(long domainId, String name, String type, String value,
 			String gtdLocation, long ttl) throws DNSMadeEasyException {
 		String json;
 		String requestDate = DateUtils.dateToStringInGMT();
@@ -355,18 +434,19 @@ public class DNSMadeEasyClient {
 	}
 
 	/**
+	 * Updates a record under a domain
 	 *
-	 * @param domainId
-	 * @param name
-	 * @param type
-	 * @param value
-	 * @param gtdLocation
-	 * @param ttl
-	 * @param id
+	 * @param domainId The domain user is interested in
+	 * @param name name for the record
+	 * @param type value for the type for the record, eg. 'A
+	 * @param value the record value
+	 * @param gtdLocation the GTD location, eg. 'DEFAULT'
+	 * @param ttl time to live
+	 * @param id identifier for the record to be deleted
 	 * @return true when update successful and false upon update fails
 	 * @throws DNSMadeEasyException
 	 */
-	public boolean updateDNSRecord(String domainId, String name, String type, String value,
+	public boolean updateDNSRecord(long domainId, String name, String type, String value,
 				String gtdLocation, long ttl, long id) throws DNSMadeEasyException {
 		String json;
 		String requestDate = DateUtils.dateToStringInGMT();
@@ -396,8 +476,15 @@ public class DNSMadeEasyClient {
 		return false;
 	}
 
-
-	public boolean deleteManagedDNSRecord(String domainId, String recordId) throws DNSMadeEasyException {
+	/**
+	 * Deletes a record under the domain
+	 *
+	 * @param domainId The domain user is interested in
+	 * @param recordId identifier for the record to be deleted
+	 * @return true if deleted else false if delete fails
+	 * @throws DNSMadeEasyException thrown in case of an error
+	 */
+	public boolean deleteManagedDNSRecord(long domainId, long recordId) throws DNSMadeEasyException {
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.delete(restUrl + "/dns/managed/" + domainId + "/records/" + recordId, apiKey,
 				getSecretHash(requestDate), requestDate);
@@ -411,7 +498,15 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
-	public DNSDomainRecordResponse[] createDNSMultiRecord(String domainId, List<DNSDomainRecordRequest> multiRecords)
+	/**
+	 * Create multiple records under a domain
+	 *
+	 * @param domainId The domain user is interested in
+	 * @param multiRecords list of data for the records to be created under the domain
+	 * @return The new records details or error if creation fails
+	 * @throws DNSMadeEasyException thrown in case of an error
+	 */
+	public DNSDomainRecordResponse[] createDNSMultiRecord(long domainId, List<DNSDomainRecordRequest> multiRecords)
 			throws DNSMadeEasyException {
 		String json;
 		String requestDate = DateUtils.dateToStringInGMT();
@@ -447,13 +542,14 @@ public class DNSMadeEasyClient {
 	}
 
 	/**
+	 * Update multiple records under a domain
 	 *
-	 * @param domainId
-	 * @param multiRecords
-	 * @return
-	 * @throws DNSMadeEasyException
+	 * @param domainId The domain user is interested in
+	 * @param multiRecords list of data for the records that need to be updated
+	 * @return true if update successful otherwise false on error
+	 * @throws DNSMadeEasyException thrown in case of an error
 	 */
-	public boolean updateDNSMultiRecord(String domainId, List<DNSDomainRecordRequest> multiRecords)
+	public boolean updateDNSMultiRecord(long domainId, List<DNSDomainRecordRequest> multiRecords)
 			throws DNSMadeEasyException {
 		String json;
 		String requestDate = DateUtils.dateToStringInGMT();
@@ -477,13 +573,14 @@ public class DNSMadeEasyClient {
 	}
 
 	/**
+	 * Delete multiple records under a domain
 	 *
-	 * @param domainId
-	 * @param recordIds
-	 * @return
-	 * @throws DNSMadeEasyException
+	 * @param domainId The domain user is interested in
+	 * @param recordIds the ids of the records to be deleted
+	 * @return true if successful otherwise false
+	 * @throws DNSMadeEasyException thrown in case of an error
 	 */
-	public boolean deleteMultiDNSRecords(String domainId, String[] recordIds) throws DNSMadeEasyException {
+	public boolean deleteMultiDNSRecords(long domainId, String[] recordIds) throws DNSMadeEasyException {
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.delete(restUrl + "/dns/managed/" + domainId + "/records?" +
 				getRecordIds(recordIds), apiKey, getSecretHash(requestDate), requestDate);
@@ -513,7 +610,7 @@ public class DNSMadeEasyClient {
 		return recordIdsStr.toString();
 	}
 
-	private ManagedDNSRecordsResponse getManagedDNSRecordsResponse(String domainId, HttpResponse response,
+	private ManagedDNSRecordsResponse getManagedDNSRecordsResponse(long domainId, HttpResponse response,
 			ManagedDNSRecordsResponse result) throws DNSMadeEasyException {
 		if (response != null) {
 			try {
