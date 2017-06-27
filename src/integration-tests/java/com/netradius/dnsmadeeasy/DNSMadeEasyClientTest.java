@@ -81,6 +81,8 @@ public class DNSMadeEasyClientTest {
 			assertTrue(updateDomainConfresponse != null);
 
 			String [] ids = {String.valueOf(domainDetails.getId()), String.valueOf(domains.getData()[0].getId())};
+			// Note, I have note been able to verify this since could not figure out the correct values for VANITY ID
+			// and TEMPLATE ID, currently the api call emits 'Invalid Vanity NS configuration.....'
 			log.info("Updating Multiple Domain configuration for domains with  : " + domainDetails.getId() + " and "
 					+ domains.getData()[0].getId());
 			ManagedDNSResponse updateMultipleDomainConfResponse =  client.updateMultipleDomainConfiguration(ids,
@@ -163,6 +165,7 @@ public class DNSMadeEasyClientTest {
 			assertTrue(deleteMultiDNSRecordsResponse);
 
 			log.info("Deleting domain with id : " + domainDetails.getId() + " and name : " + domainDetails.getName());
+			// Note this does not delete a domain, it emits an error 'Cannot delete a domain that is pending a create or delete action.'
 			ManagedDNSResponse deleteDomainResponse =  client.deleteDomain(String.valueOf(domainDetails.getId()));
 			assertTrue(deleteDomainResponse != null);
 
