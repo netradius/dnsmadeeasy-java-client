@@ -162,9 +162,7 @@ public class DNSMadeEasyClientTest {
 			boolean deleteMultiDNSRecordsResponse =  client.deleteMultiDNSRecords(domainDetails.getId(), recordIds);
 			assertTrue(deleteMultiDNSRecordsResponse);
 
-			log.info("Deleting domain with id : " + domainDetails.getId() + " and name : " +
-					domainDetails.getName() + " Record names : " + clientDNSMultiRecordResponse[1].getName() + " and " +
-					clientDNSMultiRecordResponse[0].getName());
+			log.info("Deleting domain with id : " + domainDetails.getId() + " and name : " + domainDetails.getName());
 			ManagedDNSResponse deleteDomainResponse =  client.deleteDomain(String.valueOf(domainDetails.getId()));
 			assertTrue(deleteDomainResponse != null);
 

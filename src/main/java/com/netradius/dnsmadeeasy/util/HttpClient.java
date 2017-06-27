@@ -79,9 +79,6 @@ public class HttpClient {
 		HttpResponse response = null;
 		try {
 			response = httpClient.execute(deleteWithBody);
-			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-				log.error("Error occurred while trying to use Delete API. ", response.getStatusLine().getReasonPhrase());
-			}
 		}
 		catch(IOException e) {
 				log.error("Unable to connect to  " + e.getMessage(), e);
