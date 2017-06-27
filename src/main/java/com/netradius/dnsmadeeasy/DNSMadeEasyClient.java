@@ -63,7 +63,7 @@ public class DNSMadeEasyClient {
 			json = mapper.writeValueAsString(domainRequest);
 		} catch (IOException e) {
 			log.error("Error occurred while creating domains json request" );
-			throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
+			throw getError(e, e.getMessage(), HttpStatus.SC_BAD_REQUEST);
 		}
 		String requestDate = DateUtils.dateToStringInGMT();
 		HttpResponse response = client.post(restUrl + "/dns/managed/", json, apiKey, getSecretHash(requestDate), requestDate);
