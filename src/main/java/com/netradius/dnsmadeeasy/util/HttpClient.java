@@ -29,10 +29,6 @@ public class HttpClient {
 
 		try {
 			response = httpClient.execute(post);
-			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_CREATED || response.getStatusLine()
-					.getStatusCode() != HttpStatus.SC_OK ) {
-				log.error("Error occurred while trying to post to Rest API. ", response.getStatusLine().getReasonPhrase());
-			}
 		} catch (IOException e) {
 			log.error("Unable to connect to  " + e.getMessage(), e);
 		}
@@ -99,9 +95,6 @@ public class HttpClient {
 		HttpResponse response = null;
 		try {
 			response = httpClient.execute(delete);
-			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-				log.error("Error occurred while trying to use Delete. ", response.getStatusLine().getReasonPhrase());
-			}
 		}
 		catch(IOException e) {
 			log.error("Unable to connect to  " + e.getMessage(), e);
@@ -116,10 +109,6 @@ public class HttpClient {
 
 		try {
 			response = httpClient.execute(put);
-			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_CREATED || response.getStatusLine()
-					.getStatusCode() != HttpStatus.SC_OK ) {
-				log.error("Error occurred while trying to put to Rest API. ", response.getStatusLine().getReasonPhrase());
-			}
 		} catch (IOException e) {
 			log.error("Unable to connect to  " + e.getMessage(), e);
 		}

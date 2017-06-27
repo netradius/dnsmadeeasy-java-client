@@ -69,38 +69,55 @@ public class DNSMadeEasyClientTest {
 				}
 			}
 
+			log.info("Getting Domain information for domain with id : " + domainDetails.getId() + " and name : " +
+					domainDetails.getName());
 			DNSDomainResponse getDomainResponse = client.getDomain(domainDetails.getId());
 			// check for the domain name received
 			assertTrue(getDomainResponse.getId() == domainDetails.getId());
 
+			log.info("Updating Domain configuration for domain with id : " + domainDetails.getId() + " and name : " +
+					domainDetails.getName());
 			ManagedDNSResponse updateDomainConfresponse =  client.updateDomainConfiguration(domainDetails.getId(), VANITY_ID, TEMPLATE_ID);
 			assertTrue(updateDomainConfresponse != null);
 
 			String [] ids = {String.valueOf(domainDetails.getId()), String.valueOf(domains.getData()[0].getId())};
+			log.info("Updating Multiple Domain configuration for domains with  : " + domainDetails.getId() + " and "
+					+ domains.getData()[0].getId());
 			ManagedDNSResponse updateMultipleDomainConfResponse =  client.updateMultipleDomainConfiguration(ids,
 					VANITY_ID, TEMPLATE_ID);
 			assertTrue(updateMultipleDomainConfResponse != null);
 
-
+			log.info("Creating a DNS record for domain with id : " + domainDetails.getId() + " and name : " +
+					domainDetails.getName());
 			DNSDomainRecordResponse dnsRecordSite1 =  client.createDNSRecord(domainDetails.getId(),SITE_1, TYPE_A,
 					SITE_1_VALUE, DEFAULT_GTD_LOCATION, TTL);
 
+			log.info("Updating a DNS record for domain with id : " + domainDetails.getId() + " and name : " +
+					domainDetails.getName());
 			boolean updateDNSRecord =  client.updateDNSRecord(domainDetails.getId(),SITE_1, TYPE_A,
 					SITE_1_VALUE_UPDATE, DEFAULT_GTD_LOCATION, TTL, dnsRecordSite1.getId());
 			assertTrue(updateDNSRecord);
 
+			log.info("Fetching a records for domain with id : " + domainDetails.getId() + " and name : " +
+					domainDetails.getName());
 			ManagedDNSRecordsResponse dnsRecord1 =  client.getDNSRecord(domainDetails.getId());
 			assertTrue(dnsRecord1.getData() !=  null);
 			assertTrue(dnsRecord1.getData()[0].getName().equalsIgnoreCase(SITE_1));
 
+			log.info("Fetching a record for domain with id : " + domainDetails.getId() + " and name : " +
+					domainDetails.getName() + " with type : " + TYPE_A);
 			ManagedDNSRecordsResponse dnsRecordByTypeResponse =  client.getDNSRecordByType(domainDetails.getId(), TYPE_A);
 			assertTrue(dnsRecordByTypeResponse.getData()[0].getName().equalsIgnoreCase(SITE_1));
 
+			log.info("Fetching a record for domain with id : " + domainDetails.getId() + " and name : " +
+					domainDetails.getName() + " with type : " + TYPE_A + " and record name " + SITE_1);
 			ManagedDNSRecordsResponse  dnsRecordByTypeAndRecordNameResponse =  client.getDNSRecordByTypeAndRecordName
 					(domainDetails.getId(), TYPE_A, SITE_1);
 			assertTrue(dnsRecordByTypeAndRecordNameResponse.getData()[0].getName().equalsIgnoreCase(SITE_1));
 			assertTrue(dnsRecordByTypeAndRecordNameResponse.getData()[0].getType().equalsIgnoreCase(TYPE_A));
 
+			log.info("Deleting a record for domain with id : " + domainDetails.getId() + " and name : " +
+					domainDetails.getName() + " and record name : " + dnsRecordSite1.getName());
 			boolean deleteRecord =  client.deleteManagedDNSRecord(domainDetails.getId(),dnsRecordSite1.getId());
 			assertTrue(deleteRecord);
 
@@ -121,6 +138,8 @@ public class DNSMadeEasyClientTest {
 			List<DNSDomainRecordRequest> recordRequestList = new ArrayList<>();
 			recordRequestList.add(dnsDomainRecordRequest1);
 			recordRequestList.add(dnsDomainRecordRequest2);
+			log.info("Creating multiple records for domain with id : " + domainDetails.getId() + " and name : " +
+					domainDetails.getName());
 			DNSDomainRecordResponse[] clientDNSMultiRecordResponse = client.createDNSMultiRecord(domainDetails.getId(), recordRequestList);
 			assertTrue(clientDNSMultiRecordResponse != null && clientDNSMultiRecordResponse.length == 2);
 
@@ -131,13 +150,21 @@ public class DNSMadeEasyClientTest {
 			dnsDomainRecordRequest2.setId(clientDNSMultiRecordResponse[0].getId());
 			recordRequestList.add(dnsDomainRecordRequest1);
 			recordRequestList.add(dnsDomainRecordRequest2);
+			log.info("Updating multiple records for domain with id : " + domainDetails.getId() + " and name : " +
+					domainDetails.getName());
 			boolean updateDNSMultiRecordResponse =  client.updateDNSMultiRecord(domainDetails.getId(),recordUpdateRequestList);
 			assertTrue(updateDNSMultiRecordResponse);
 
 			String[] recordIds = {String.valueOf(clientDNSMultiRecordResponse[1].getId()), String.valueOf(clientDNSMultiRecordResponse[0].getId())};
+			log.info("Deleting multiple records for domain with id : " + domainDetails.getId() + " and name : " +
+					domainDetails.getName() + " Record names : " + clientDNSMultiRecordResponse[1].getName() + " and " +
+					clientDNSMultiRecordResponse[0].getName());
 			boolean deleteMultiDNSRecordsResponse =  client.deleteMultiDNSRecords(domainDetails.getId(), recordIds);
 			assertTrue(deleteMultiDNSRecordsResponse);
 
+			log.info("Deleting domain with id : " + domainDetails.getId() + " and name : " +
+					domainDetails.getName() + " Record names : " + clientDNSMultiRecordResponse[1].getName() + " and " +
+					clientDNSMultiRecordResponse[0].getName());
 			ManagedDNSResponse deleteDomainResponse =  client.deleteDomain(String.valueOf(domainDetails.getId()));
 			assertTrue(deleteDomainResponse != null);
 

@@ -12,6 +12,7 @@
 		<java.version>1.8</java.version>
 		<compiler.optimize>false</compiler.optimize>
 		<compiler.debug>true</compiler.debug>
+		<log4j.configuration>src/main/resources/log4j.properties</log4j.configuration>
 
 		<!--Plugin versions-->
 		<build-helper-maven-plugin.version>1.9.1</build-helper-maven-plugin.version>
