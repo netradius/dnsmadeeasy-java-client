@@ -1,5 +1,6 @@
 package com.netradius.dnsmadeeasy;
 
+import com.netradius.dnsmadeeasy.assembler.DNSZoneExportResponseAssembler;
 import com.netradius.dnsmadeeasy.data.*;
 import com.netradius.dnsmadeeasy.util.DateUtils;
 import com.netradius.dnsmadeeasy.util.HttpClient;
@@ -35,6 +36,8 @@ public class DNSMadeEasyClient {
 	private String restUrl;
 	private String apiKey;
 	private String apiSecret;
+	private static final DNSZoneExportResponseAssembler dNSZoneExportResponseAssembler = new
+			DNSZoneExportResponseAssembler();
 
 	private void settMapperProperties() {
 		mapper.setSerializationInclusion(Inclusion.NON_NULL);
@@ -592,6 +595,38 @@ public class DNSMadeEasyClient {
 			}
 		}
 
+		return result;
+	}
+
+	/**
+	 * Exports the domain
+	 *
+	 * @param domainName domain in which the user is interested in
+	 * @return The Zone information
+	 * @throws DNSMadeEasyException thrown in case of error
+	 */
+	public DNSZoneExportResponse exportDomain(String domainName) throws DNSMadeEasyException {
+		String requestDate = DateUtils.dateToStringInGMT();
+		DNSZoneExportResponse result = new DNSZoneExportResponse();
+		DNSDomainResponse domainDetails = null;
+		ManagedDNSResponse domains = getDomains();
+		for (DNSDomainResponse dnsDomainResponse : domains.getData()) {
+			if (dnsDomainResponse.getName().equalsIgnoreCase(domainName)) {
+				domainDetails = dnsDomainResponse;
+			}
+		}
+
+		DNSDomainResponse dnsDomainResponse = getDomain(domainDetails.getId());
+		result = dNSZoneExportResponseAssembler.assemble(dnsDomainResponse);
+
+		// add records under the domain to response
+		ManagedDNSRecordsResponse managedDNSRecordsResponse = getDNSRecord(domainDetails.getId());
+		if (managedDNSRecordsResponse != null && managedDNSRecordsResponse.getData() != null) {
+			result.setRecords(managedDNSRecordsResponse.getData());
+		}
+		if (result != null) {
+			log.debug(result.toString());
+		}
 		return result;
 	}
 

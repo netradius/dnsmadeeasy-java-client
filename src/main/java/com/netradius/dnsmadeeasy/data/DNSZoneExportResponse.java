@@ -12,8 +12,7 @@ import java.io.Serializable;
  */
 @Data
 @JsonIgnoreProperties( ignoreUnknown = true )
-public class DNSDomainResponse implements Serializable {
-	private static final long serialVersionUID = -5027327191685785995L;
+public class DNSZoneExportResponse implements Serializable {
 
 	private String name;
 	private long id;
@@ -22,7 +21,7 @@ public class DNSDomainResponse implements Serializable {
 	private String folderId;
 	private String created;
 	private String updated;
-	private DNSNameServerResponse[] nameServers;
+	private DNSNameServerResponse [] nameServers;
 	private Boolean processMulti;
 	private DNSNameServerResponse axfrServer;
 	private String[] activeThirdParties;
@@ -30,5 +29,6 @@ public class DNSDomainResponse implements Serializable {
 	private long templateId;
 	private long transferAclId;
 	private long soaID;
-	private DNSNameServerResponse[] vanityNameServers;
-}
+	private DNSNameServerResponse[]  vanityNameServers;
+	private DNSDomainRecordResponse [] records;
+ }

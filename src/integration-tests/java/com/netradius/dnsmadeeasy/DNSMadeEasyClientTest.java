@@ -203,4 +203,16 @@ public class DNSMadeEasyClientTest {
 			assertTrue(false);
 		}
 	}
+
+	@Test
+	public void testDomainExport() {
+		try {
+			DNSZoneExportResponse dnsZoneExportResponse = client.exportDomain("testdomain82759.com");
+			assertTrue(dnsZoneExportResponse != null);
+		} catch (DNSMadeEasyException e) {
+			log.error(e.toString(), e);
+			assertTrue(false);
+		}
+
+	}
 }

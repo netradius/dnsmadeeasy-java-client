@@ -25,6 +25,8 @@
 
 		<!-- Dependency Versions -->
 		<commons-codec.version>1.10</commons-codec.version>
+		<commons-beanutils>1.9.3</commons-beanutils>
+		<findbugs.version>3.0.0</findbugs.version>
 		<httpclient.version>4.5.3</httpclient.version>
 		<jackson.version>1.9.13</jackson.version>
 		<junit.version>4.12</junit.version>
@@ -33,6 +35,16 @@
 	</properties>
 	<dependencies>
 		<!-- Keep in alphabetical order by groupId and artifactId -->
+		<dependency>
+			<groupId>com.google.code.findbugs</groupId>
+			<artifactId>findbugs</artifactId>
+			<version>${findbugs.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-beanutils</groupId>
+			<artifactId>commons-beanutils</artifactId>
+			<version>${commons-beanutils}</version>
+		</dependency>
 		<dependency>
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
