@@ -30,10 +30,10 @@ public class DNSDomainRecordResponse implements Serializable {
 	private String redirectType;
 	private String keywords;
 	private String description;
-	private String mxLevel;
-	private String weight;
-	private String priority;
-	private String port;
+	private int mxLevel;
+	private int weight;
+	private int priority;
+	private int port;
 	private int source;
 
 	private String [] error;

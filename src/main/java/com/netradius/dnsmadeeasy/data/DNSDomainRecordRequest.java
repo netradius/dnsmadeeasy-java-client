@@ -21,5 +21,9 @@ public class DNSDomainRecordRequest implements Serializable {
 	private String type;
 	private long ttl;
 	private String gtdLocation;
-
+	private int source;
+	private int mxLevel;
+	private int weight;
+	private int priority;
+	private int port;
 }

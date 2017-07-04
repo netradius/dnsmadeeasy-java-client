@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -91,13 +92,19 @@ public class DNSMadeEasyClientTest {
 
 			log.info("Creating a DNS record for domain with id : " + domainDetails.getId() + " and name : " +
 					domainDetails.getName());
-			DNSDomainRecordResponse dnsRecordSite1 =  client.createDNSRecord(domainDetails.getId(),SITE_1, TYPE_A,
-					SITE_1_VALUE, DEFAULT_GTD_LOCATION, TTL);
+			DNSDomainRecordRequest recordRequest = new DNSDomainRecordRequest();
+			recordRequest.setGtdLocation(DEFAULT_GTD_LOCATION);
+			recordRequest.setValue(SITE_1_VALUE);
+			recordRequest.setName(SITE_1);
+			recordRequest.setType(TYPE_A);
+			recordRequest.setTtl(TTL);
+			DNSDomainRecordResponse dnsRecordSite1 =  client.createDNSRecord(domainDetails.getId(), recordRequest);
 
 			log.info("Updating a DNS record for domain with id : " + domainDetails.getId() + " and name : " +
 					domainDetails.getName());
-			boolean updateDNSRecord =  client.updateDNSRecord(domainDetails.getId(),SITE_1, TYPE_A,
-					SITE_1_VALUE_UPDATE, DEFAULT_GTD_LOCATION, TTL, dnsRecordSite1.getId());
+			recordRequest.setId(dnsRecordSite1.getId());
+			recordRequest.setValue(SITE_1_VALUE_UPDATE);
+			boolean updateDNSRecord =  client.updateDNSRecord(domainDetails.getId(), recordRequest);
 			assertTrue(updateDNSRecord);
 
 			log.info("Fetching a records for domain with id : " + domainDetails.getId() + " and name : " +
@@ -169,6 +176,8 @@ public class DNSMadeEasyClientTest {
 			ManagedDNSResponse deleteDomainResponse =  client.deleteDomain(String.valueOf(domainDetails.getId()));
 			assertTrue(deleteDomainResponse != null);
 
+			DNSZoneExportResponse dnsZoneExportResponse = client.exportZone(domainDetails.getName());
+			assertTrue(dnsZoneExportResponse != null);
 		} catch (DNSMadeEasyException e) {
 			log.error(e.toString(), e);
 			assertTrue(false);
@@ -205,10 +214,11 @@ public class DNSMadeEasyClientTest {
 	}
 
 	@Test
-	public void testDomainExport() {
+	public void testDomainImport() {
 		try {
-			DNSZoneExportResponse dnsZoneExportResponse = client.exportDomain("testdomain82759.com");
-			assertTrue(dnsZoneExportResponse != null);
+			File zoneDefinition = new File("src/integration-tests/resources/zoneimport.txt");
+			DNSZoneImportResponse dnsZoneImportResponse = client.importZone(zoneDefinition);
+			assertTrue(dnsZoneImportResponse != null);
 		} catch (DNSMadeEasyException e) {
 			log.error(e.toString(), e);
 			assertTrue(false);

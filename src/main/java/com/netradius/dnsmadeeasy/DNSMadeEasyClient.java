@@ -12,15 +12,19 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 import java.util.stream.Collectors;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+
+import static com.netradius.dnsmadeeasy.data.RecordType.ANAME;
 
 /**
  * Client that talks to DNSMadeEasy server using Rest
@@ -33,6 +37,9 @@ public class DNSMadeEasyClient {
 
 	private static final ObjectMapper mapper = new ObjectMapper();
 	private static final HttpClient client = new HttpClient();
+	public static final String DEFINITION_SEPARATOR = ";---------------------------------------------\n";
+	public static final String CURRENT_ZONE_DEFINITION = "; Current zone definition";
+	public static final String NAME_SEPARATOR = "\\.";
 	private String restUrl;
 	private String apiKey;
 	private String apiSecret;
@@ -393,26 +400,17 @@ public class DNSMadeEasyClient {
 
 	/**
 	 * Creates a record under a specified domain
+	 * Record type must be one of: [A, A6, AAAA, AAAANAME, ANAME, CNAME, DNAME, HTTPRED, MX, NAPTR, NS, PTR, SPF, SRV, TXT]
 	 *
 	 * @param domainId The domain user is interested in
-	 * @param name name for the record
-	 * @param type value for the type for the record, eg. 'A
-	 * @param value the record value
-	 * @param gtdLocation the GTD location, eg. 'DEFAULT'
-	 * @param ttl time to live
+	 * @param dnsDomainRecordRequest  the wrapper for record request
 	 * @return The Record details in the DNSDomainRecordResponse when successful or error
 	 * @throws DNSMadeEasyException
 	 */
-	public DNSDomainRecordResponse createDNSRecord(long domainId, String name, String type, String value,
-			String gtdLocation, long ttl) throws DNSMadeEasyException {
+	public DNSDomainRecordResponse createDNSRecord(long domainId, DNSDomainRecordRequest dnsDomainRecordRequest) throws
+			DNSMadeEasyException {
 		String json;
 		String requestDate = DateUtils.dateToStringInGMT();
-		DNSDomainRecordRequest dnsDomainRecordRequest = new DNSDomainRecordRequest();
-		dnsDomainRecordRequest.setName(name);
-		dnsDomainRecordRequest.setType(type);
-		dnsDomainRecordRequest.setValue(value);
-		dnsDomainRecordRequest.setGtdLocation(gtdLocation);
-		dnsDomainRecordRequest.setTtl(ttl);
 		try {
 			json = mapper.writeValueAsString(dnsDomainRecordRequest);
 		} catch (IOException e) {
@@ -439,35 +437,24 @@ public class DNSMadeEasyClient {
 
 	/**
 	 * Updates a record under a domain
+	 * Record type must be one of: [A, A6, AAAA, AAAANAME, ANAME, CNAME, DNAME, HTTPRED, MX, NAPTR, NS, PTR, SPF, SRV, TXT]
 	 *
 	 * @param domainId The domain user is interested in
-	 * @param name name for the record
-	 * @param type value for the type for the record, eg. 'A
-	 * @param value the record value
-	 * @param gtdLocation the GTD location, eg. 'DEFAULT'
-	 * @param ttl time to live
-	 * @param id identifier for the record to be deleted
+	 * @param dnsDomainRecordRequest  the wrapper for record request
 	 * @return true when update successful and false upon update fails
 	 * @throws DNSMadeEasyException
 	 */
-	public boolean updateDNSRecord(long domainId, String name, String type, String value,
-				String gtdLocation, long ttl, long id) throws DNSMadeEasyException {
+	public boolean updateDNSRecord(long domainId, DNSDomainRecordRequest dnsDomainRecordRequest) throws DNSMadeEasyException {
 		String json;
 		String requestDate = DateUtils.dateToStringInGMT();
-		DNSDomainRecordRequest dnsDomainRecordRequest = new DNSDomainRecordRequest();
-		dnsDomainRecordRequest.setName(name);
-		dnsDomainRecordRequest.setType(type);
-		dnsDomainRecordRequest.setValue(value);
-		dnsDomainRecordRequest.setGtdLocation(gtdLocation);
-		dnsDomainRecordRequest.setTtl(ttl);
-		dnsDomainRecordRequest.setId(id);
 		try {
 			json = mapper.writeValueAsString(dnsDomainRecordRequest);
 		} catch (IOException e) {
 			log.error("Error occurred while preparing request to create a record for domain with id : " + domainId);
 			throw getError(e, e.getMessage(), HttpStatus.SC_BAD_REQUEST);
 		}
-		HttpResponse response = client.put(restUrl + "/dns/managed/" + domainId + "/records/" + id, json, apiKey,
+		HttpResponse response = client.put(restUrl + "/dns/managed/" + domainId + "/records/" +
+				dnsDomainRecordRequest.getId(), json, apiKey,
 				getSecretHash(requestDate), requestDate);
 		if (response != null) {
 			if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
@@ -605,9 +592,8 @@ public class DNSMadeEasyClient {
 	 * @return The Zone information
 	 * @throws DNSMadeEasyException thrown in case of error
 	 */
-	public DNSZoneExportResponse exportDomain(String domainName) throws DNSMadeEasyException {
-		String requestDate = DateUtils.dateToStringInGMT();
-		DNSZoneExportResponse result = new DNSZoneExportResponse();
+	public DNSZoneExportResponse exportZone(String domainName) throws DNSMadeEasyException {
+		DNSZoneExportResponse result;
 		DNSDomainResponse domainDetails = null;
 		ManagedDNSResponse domains = getDomains();
 		for (DNSDomainResponse dnsDomainResponse : domains.getData()) {
@@ -628,6 +614,201 @@ public class DNSMadeEasyClient {
 			log.debug(result.toString());
 		}
 		return result;
+	}
+
+	/**
+	 * Allows to import a Zone from the done definition file, the file should be of type
+	 * src/integration-tests/resources/zoneimport.txt
+	 *
+	 * @param zoneDefinition file which contains zone import definition
+	 * @return The imported zone details are import successful
+	 */
+	public DNSZoneImportResponse importZone(File zoneDefinition) throws DNSMadeEasyException {
+		DNSZoneImportResponse result = null;
+		// read the file using Scanner, try-with-resources
+		String nextLine;
+		List<DNSDomainRecordRequest> recordRequests = new ArrayList<>();
+		try (Scanner scanner = new Scanner(zoneDefinition)) {
+			while (scanner.hasNext()) {
+				nextLine = scanner.nextLine();
+				if (nextLine != null && !nextLine.isEmpty()) {
+					if (nextLine.contains(DEFINITION_SEPARATOR) ||
+							nextLine.contains(CURRENT_ZONE_DEFINITION)) {
+						continue;
+					}
+					// parse the record in the definition file
+					String [] row  = nextLine.split(" ");
+					if (row != null && (row.length >= 6)) {
+						DNSDomainRecordRequest dnsDomainRecordRequest = new DNSDomainRecordRequest();
+						dnsDomainRecordRequest.setName(row[0]); // name of the record
+						dnsDomainRecordRequest.setTtl(Long.parseLong(row[1])); // TTL value
+						dnsDomainRecordRequest.setType(row[3]); // type of the record
+						// check the type
+						if (row[3] != null && !row[3].isEmpty()) {
+							RecordType type = RecordType.getEnumByValue(row[3]);
+
+							switch (type) {
+								case MX : populateMXType(dnsDomainRecordRequest, row);
+											break;
+								case CAA : populateCAAType(dnsDomainRecordRequest, row);
+											break;
+								case SRV : populateSRVType(dnsDomainRecordRequest, row);
+											break;
+								case ANAME: populateANameType(dnsDomainRecordRequest, row);
+											break;
+								default : populateDefaultType(dnsDomainRecordRequest, row);
+											break;
+							}
+						}
+
+						// finally
+						recordRequests.add(dnsDomainRecordRequest);
+					}
+				}
+			}
+		} catch (IOException e) {
+			log.error("Error occurred while importing Zone Definition file ");
+			throw getError(e, e.getMessage(), HttpStatus.SC_BAD_REQUEST);
+		}
+
+		// start importing the records
+		// get the domain name from the first record
+		if (recordRequests != null && !recordRequests.isEmpty()) {
+			result = importRecords(recordRequests);
+		}
+		// consolidate the errors response
+		return result;
+	}
+
+	private DNSZoneImportResponse importRecords(List<DNSDomainRecordRequest> recordRequests) throws DNSMadeEasyException {
+		DNSZoneImportResponse result = new DNSZoneImportResponse();
+		List<DNSDomainRecordResponse> recordResponses = new ArrayList<>();
+		DNSDomainResponse domain = null;
+		// iterate through the list
+		for (DNSDomainRecordRequest dnsDomainRecordRequest : recordRequests) {
+			// get the domain details from the record name
+			try {
+				domain = getDomainDetails(dnsDomainRecordRequest.getName());
+			} catch (DNSMadeEasyException e) {
+				throw e;
+			}
+			String recordName  = getRecordName(dnsDomainRecordRequest.getName());
+			//dnsDomainRecordRequest.setZoneDefineRecordName(dnsDomainRecordRequest.getName());
+			if (dnsDomainRecordRequest.getType() != ANAME.toString()) {
+				dnsDomainRecordRequest.setName(recordName);
+			} else {
+				dnsDomainRecordRequest.setName("");
+			}
+			DNSDomainRecordResponse dnsDomainRecordResponse = createDNSRecord(domain.getId(), dnsDomainRecordRequest);
+			recordResponses.add(dnsDomainRecordResponse);
+		}
+		result.setRecords(recordResponses);
+		if (domain != null) {
+			result.setName(domain.getName());
+			result.setId(domain.getId());
+		}
+
+		return result;
+	}
+
+	private String getRecordName(String name) {
+		if (name != null && !name.isEmpty()) {
+			String[] recordNameParts = name.split(NAME_SEPARATOR);
+
+			return recordNameParts[0];
+		}
+		return name;
+	}
+
+	private DNSDomainResponse getDomainDetails(String name) throws DNSMadeEasyException {
+		DNSDomainResponse result = null;
+
+		if (name != null && !name.isEmpty()) {
+			String[] recordNameParts = name.split(NAME_SEPARATOR, 2);
+
+			// get the domain information
+			ManagedDNSResponse domains;
+			try {
+				domains = getDomains();
+			} catch (DNSMadeEasyException e) {
+				log.error("Error occurred while getting domains ");
+				throw getError(e, e.getMessage(), HttpStatus.SC_BAD_REQUEST);
+			}
+			String domainName = recordNameParts[1];
+			if(domainName.endsWith("."))
+			{
+				domainName = domainName.substring(0,domainName.length() - 1);
+			}
+
+			log.info("Domains fetched successfully");
+			for (DNSDomainResponse dnsDomainResponse : domains.getData()) {
+				if (dnsDomainResponse.getName().equalsIgnoreCase(domainName)) {
+					result = dnsDomainResponse;
+				}
+			}
+		}
+
+		return result;
+	}
+
+	private void populateCAAType(DNSDomainRecordRequest dnsDomainRecordRequest, String[] row) {
+		if (row.length >= 7) {
+			dnsDomainRecordRequest.setValue(row[6]); // value for the record
+		}
+		if (row.length >= 8) {
+			dnsDomainRecordRequest.setGtdLocation(row[7]); // the GTD Location
+		}
+	}
+
+	private void populateMXType(DNSDomainRecordRequest dnsDomainRecordRequest, String[] row) {
+		if (row.length >= 5 && row[4] != null && row[4] != "" ) {
+			dnsDomainRecordRequest.setMxLevel(Integer.parseInt(row[4]));
+		}
+		if (row.length >= 6) {
+			dnsDomainRecordRequest.setValue(row[5]); // value for the record
+		}
+		if (row.length >= 7) {
+			dnsDomainRecordRequest.setGtdLocation(row[6]); // the GTD Location
+		}
+	}
+
+	private void populateANameType(DNSDomainRecordRequest dnsDomainRecordRequest, String[] row) {
+		if (row.length >= 5) {
+			dnsDomainRecordRequest.setValue(row[4]); // value for the record
+		}
+		if (row.length >= 6) {
+			dnsDomainRecordRequest.setGtdLocation(row[5]); // the GTD Location
+		}
+		if (row.length >= 7) {
+			dnsDomainRecordRequest.setName("");
+		}
+	}
+
+	private void populateSRVType(DNSDomainRecordRequest dnsDomainRecordRequest, String[] row) {
+		if (row.length >= 5 && row[4] != null && row[4] != "" ) {
+			dnsDomainRecordRequest.setPriority(Integer.parseInt(row[4]));
+		}
+		if (row.length >= 6 && row[5] != null && row[5] != "" ) {
+			dnsDomainRecordRequest.setWeight(Integer.parseInt(row[5]));
+		}
+		if (row.length >= 7 && row[6] != null && row[6] != "" ) {
+			dnsDomainRecordRequest.setPort(Integer.parseInt(row[6]));
+		}
+		if (row.length >= 8) {
+			dnsDomainRecordRequest.setValue(row[7]); // value for the record
+		}
+		if (row.length >= 9) {
+			dnsDomainRecordRequest.setGtdLocation(row[8]); // the GTD Location
+		}
+	}
+
+	private void populateDefaultType(DNSDomainRecordRequest dnsDomainRecordRequest, String[] row) {
+		if (row.length >= 5) {
+			dnsDomainRecordRequest.setValue(row[4]); // value for the record
+		}
+		if (row.length >= 6) {
+			dnsDomainRecordRequest.setGtdLocation(row[5]); // the GTD Location
+		}
 	}
 
 	private String getRecordIds(String[] recordIds) {
