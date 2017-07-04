@@ -1,5 +1,6 @@
 package com.netradius.dnsmadeeasy;
 
+import com.netradius.dnsmadeeasy.assembler.DNSRecordRequestResponseAssembler;
 import com.netradius.dnsmadeeasy.assembler.DNSZoneExportResponseAssembler;
 import com.netradius.dnsmadeeasy.data.*;
 import com.netradius.dnsmadeeasy.util.DateUtils;
@@ -45,6 +46,9 @@ public class DNSMadeEasyClient {
 	private String apiSecret;
 	private static final DNSZoneExportResponseAssembler dNSZoneExportResponseAssembler = new
 			DNSZoneExportResponseAssembler();
+	private static final DNSRecordRequestResponseAssembler dNSRecordRequestResponseAssembler = new
+			DNSRecordRequestResponseAssembler();
+
 
 	private void settMapperProperties() {
 		mapper.setSerializationInclusion(Inclusion.NON_NULL);
@@ -680,6 +684,38 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
+	public DNSZoneImportResponse cloneZone(String fromDomain, String toDomain) throws DNSMadeEasyException {
+		DNSZoneImportResponse result = new DNSZoneImportResponse();
+
+		// get the domain details
+		DNSDomainResponse fromDomainDetails = getDomainDetails(fromDomain, false);
+		DNSDomainResponse toDomainDetails = getDomainDetails(toDomain, false);
+		ManagedDNSRecordsResponse managedDNSRecordsResponse = getDNSRecord(fromDomainDetails.getId());
+
+		// create the DNSDomainRecordRequest
+		List<DNSDomainRecordRequest> recordRequests = new ArrayList<>();
+		List<DNSDomainRecordResponse> recordResponses = new ArrayList<>();
+		if (managedDNSRecordsResponse.getData() != null && managedDNSRecordsResponse.getData().length > 0) {
+			for (DNSDomainRecordResponse dnsDomainRecordResponse: managedDNSRecordsResponse.getData()) {
+				DNSDomainRecordRequest recordRequest = dNSRecordRequestResponseAssembler.assemble
+						(dnsDomainRecordResponse);
+				recordRequest.setId(null);
+				recordRequests.add(recordRequest);
+			}
+			for (DNSDomainRecordRequest dnsDomainRecordRequest : recordRequests) {
+				DNSDomainRecordResponse dnsDomainRecordResponse = createDNSRecord(toDomainDetails.getId(), dnsDomainRecordRequest);
+				recordResponses.add(dnsDomainRecordResponse);
+			}
+		}
+		result.setRecords(recordResponses);
+		if (fromDomainDetails != null) {
+			result.setName(fromDomainDetails.getName());
+			result.setId(fromDomainDetails.getId());
+		}
+
+		return result;
+	}
+
 	private DNSZoneImportResponse importRecords(List<DNSDomainRecordRequest> recordRequests) throws DNSMadeEasyException {
 		DNSZoneImportResponse result = new DNSZoneImportResponse();
 		List<DNSDomainRecordResponse> recordResponses = new ArrayList<>();
@@ -688,12 +724,11 @@ public class DNSMadeEasyClient {
 		for (DNSDomainRecordRequest dnsDomainRecordRequest : recordRequests) {
 			// get the domain details from the record name
 			try {
-				domain = getDomainDetails(dnsDomainRecordRequest.getName());
+				domain = getDomainDetails(dnsDomainRecordRequest.getName(), true);
 			} catch (DNSMadeEasyException e) {
 				throw e;
 			}
 			String recordName  = getRecordName(dnsDomainRecordRequest.getName());
-			//dnsDomainRecordRequest.setZoneDefineRecordName(dnsDomainRecordRequest.getName());
 			if (dnsDomainRecordRequest.getType() != ANAME.toString()) {
 				dnsDomainRecordRequest.setName(recordName);
 			} else {
@@ -720,12 +755,17 @@ public class DNSMadeEasyClient {
 		return name;
 	}
 
-	private DNSDomainResponse getDomainDetails(String name) throws DNSMadeEasyException {
+	private DNSDomainResponse getDomainDetails(String name, Boolean useSplit) throws DNSMadeEasyException {
 		DNSDomainResponse result = null;
-
+		String domainName = name;
 		if (name != null && !name.isEmpty()) {
-			String[] recordNameParts = name.split(NAME_SEPARATOR, 2);
-
+			if (useSplit) {
+				String[] recordNameParts = name.split(NAME_SEPARATOR, 2);
+				domainName = recordNameParts[1];
+				if (domainName.endsWith(".")) {
+					domainName = domainName.substring(0, domainName.length() - 1);
+				}
+			}
 			// get the domain information
 			ManagedDNSResponse domains;
 			try {
@@ -734,12 +774,6 @@ public class DNSMadeEasyClient {
 				log.error("Error occurred while getting domains ");
 				throw getError(e, e.getMessage(), HttpStatus.SC_BAD_REQUEST);
 			}
-			String domainName = recordNameParts[1];
-			if(domainName.endsWith("."))
-			{
-				domainName = domainName.substring(0,domainName.length() - 1);
-			}
-
 			log.info("Domains fetched successfully");
 			for (DNSDomainResponse dnsDomainResponse : domains.getData()) {
 				if (dnsDomainResponse.getName().equalsIgnoreCase(domainName)) {

@@ -17,7 +17,7 @@ public class DNSDomainRecordRequest implements Serializable {
 
 	private String name;
 	private String value;
-	private long id;
+	private Long id;
 	private String type;
 	private long ttl;
 	private String gtdLocation;
