@@ -17,7 +17,7 @@ public enum RecordType {
 	SPF("SPF"),
 	SRV("SRV"),
 	TXT("TXT"),
-	HTTP("HTTP");
+	HTTPRED("HTTPRED");
 
 	private final String value;
 

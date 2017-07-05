@@ -1,13 +1,22 @@
 ;---------------------------------------------
-; Current zone definition
+; Current zone definition, please ensure the format
+; Use ; for comment or ignoring a line
+; Note CAA type records are not allowed by the API to be created, incase a record of that type is added
+; there might be an error reported in the response for that record.
 ;---------------------------------------------
-record1.mytest17.com. 1800 IN A 192.168.1.1 DEFAULT
-cnamerecord1.mytest17.com. 1800 IN CNAME cnamerec1 DEFAULT
-aaaarec1.mytest17.com. 1800 IN AAAA 2600:1802:2::1 DEFAULT
-anamerec1.mytest17.com. 1800 IN ANAME 192.168.1.1 DEFAULT
-mxrec1.mytest17.com. 1800 IN MX 1 mxserver1 DEFAULT
-ptrec1.mytest17.com. 1800 IN PTR ptr DEFAULT
-spfrec.mytest17.com. 1800 IN SPF "spfrec_val" DEFAULT
-srvrec1.mytest17.com. 1800 IN SRV 2 3 1080 test DEFAULT
-txtrec1.mytest17.com. 1800 IN TXT "txtrec1_val" DEFAULT
+.mytest8.com. 1800 IN ANAME 192.168.1.1 DEFAULT
+aaaarec1.mytest8.com. 1800 IN AAAA 2600:1802:2::1 DEFAULT
+cnamerecord1.mytest8.com. 1800 IN CNAME cnamerec1 DEFAULT
+mxrec1.mytest8.com. 1800 IN MX 1 mxserver1 DEFAULT
+record1.mytest8.com. 1800 IN A 192.168.1.1 DEFAULT
+nsname.mytest8.com. 1800 IN NS record1 DEFAULT
+ptrec1.mytest8.com. 1800 IN PTR ptr DEFAULT
+ptrec2.mytest8.com. 1800 IN PTR ptr DEFAULT
+ptrec3.mytest8.com. 1800 IN PTR ptr DEFAULT
+spfrec1.mytest8.com. 1800 IN SPF "spfrec_val" DEFAULT
+spfrec2.mytest8.com. 1800 IN SPF "spfrec_val" DEFAULT
+srvrec1.mytest8.com. 1800 IN SRV 2 3 1080 test DEFAULT
+txtrec1.mytest8.com. 1800 IN TXT "txtrec1_val" DEFAULT
+httpRed1.mytest8.com. 1800 IN HTTPRED http://red.mytest8.com
+httpRed2.mytest8.com. 1800 IN HTTPRED http://red.mytest8.com
 ;---------------------------------------------

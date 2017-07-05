@@ -38,8 +38,7 @@ public class DNSMadeEasyClient {
 
 	private static final ObjectMapper mapper = new ObjectMapper();
 	private static final HttpClient client = new HttpClient();
-	public static final String DEFINITION_SEPARATOR = ";---------------------------------------------\n";
-	public static final String CURRENT_ZONE_DEFINITION = "; Current zone definition";
+	public static final String DEFINITION_SEPARATOR = ";";
 	public static final String NAME_SEPARATOR = "\\.";
 	private String restUrl;
 	private String apiKey;
@@ -626,6 +625,7 @@ public class DNSMadeEasyClient {
 	 *
 	 * @param zoneDefinition file which contains zone import definition
 	 * @return The imported zone details are import successful
+	 * @throws DNSMadeEasyException in case any error occurs
 	 */
 	public DNSZoneImportResponse importZone(File zoneDefinition) throws DNSMadeEasyException {
 		DNSZoneImportResponse result = null;
@@ -636,13 +636,12 @@ public class DNSMadeEasyClient {
 			while (scanner.hasNext()) {
 				nextLine = scanner.nextLine();
 				if (nextLine != null && !nextLine.isEmpty()) {
-					if (nextLine.contains(DEFINITION_SEPARATOR) ||
-							nextLine.contains(CURRENT_ZONE_DEFINITION)) {
+					if (nextLine.startsWith(DEFINITION_SEPARATOR)) {
 						continue;
 					}
 					// parse the record in the definition file
 					String [] row  = nextLine.split(" ");
-					if (row != null && (row.length >= 6)) {
+					if (row != null && (row.length >= 5)) {
 						DNSDomainRecordRequest dnsDomainRecordRequest = new DNSDomainRecordRequest();
 						dnsDomainRecordRequest.setName(row[0]); // name of the record
 						dnsDomainRecordRequest.setTtl(Long.parseLong(row[1])); // TTL value
@@ -650,21 +649,26 @@ public class DNSMadeEasyClient {
 						// check the type
 						if (row[3] != null && !row[3].isEmpty()) {
 							RecordType type = RecordType.getEnumByValue(row[3]);
-
-							switch (type) {
-								case MX : populateMXType(dnsDomainRecordRequest, row);
-											break;
-								case CAA : populateCAAType(dnsDomainRecordRequest, row);
-											break;
-								case SRV : populateSRVType(dnsDomainRecordRequest, row);
-											break;
-								case ANAME: populateANameType(dnsDomainRecordRequest, row);
-											break;
-								default : populateDefaultType(dnsDomainRecordRequest, row);
-											break;
+							if (type != null) {
+								switch (type) {
+									case MX:
+										populateMXType(dnsDomainRecordRequest, row);
+										break;
+									case CAA:
+										populateCAAType(dnsDomainRecordRequest, row);
+										break;
+									case SRV:
+										populateSRVType(dnsDomainRecordRequest, row);
+										break;
+									case ANAME:
+										populateANameType(dnsDomainRecordRequest, row);
+										break;
+									default:
+										populateDefaultType(dnsDomainRecordRequest, row);
+										break;
+								}
 							}
 						}
-
 						// finally
 						recordRequests.add(dnsDomainRecordRequest);
 					}
@@ -684,14 +688,32 @@ public class DNSMadeEasyClient {
 		return result;
 	}
 
+	/**
+	 * This will clone the records from a Domain to another Domain.
+	 * Note the method will not create a domain if not found
+	 *
+	 * @param fromDomain zone/domain from which the
+	 * @param toDomain an existing zone/domain must exist
+	 * @return contains the details of the Zone transfer
+	 * @throws DNSMadeEasyException in case any error occurs
+	 */
 	public DNSZoneImportResponse cloneZone(String fromDomain, String toDomain) throws DNSMadeEasyException {
 		DNSZoneImportResponse result = new DNSZoneImportResponse();
 
 		// get the domain details
 		DNSDomainResponse fromDomainDetails = getDomainDetails(fromDomain, false);
+		if (fromDomainDetails == null) {
+			throw new DNSMadeEasyException(HttpStatus.SC_NOT_FOUND, "Unable to find domain : " + fromDomain, null);
+		}
 		DNSDomainResponse toDomainDetails = getDomainDetails(toDomain, false);
+		if (toDomainDetails == null) {
+			throw new DNSMadeEasyException(HttpStatus.SC_NOT_FOUND, "Unable to find domain : " + toDomain, null);
+		}
+		if (toDomainDetails.getId() == fromDomainDetails.getId()) {
+			throw new DNSMadeEasyException(HttpStatus.SC_BAD_REQUEST, "From and To Domains must be different", null);
+		}
+		// get the records from the domain
 		ManagedDNSRecordsResponse managedDNSRecordsResponse = getDNSRecord(fromDomainDetails.getId());
-
 		// create the DNSDomainRecordRequest
 		List<DNSDomainRecordRequest> recordRequests = new ArrayList<>();
 		List<DNSDomainRecordResponse> recordResponses = new ArrayList<>();
@@ -703,7 +725,14 @@ public class DNSMadeEasyClient {
 				recordRequests.add(recordRequest);
 			}
 			for (DNSDomainRecordRequest dnsDomainRecordRequest : recordRequests) {
-				DNSDomainRecordResponse dnsDomainRecordResponse = createDNSRecord(toDomainDetails.getId(), dnsDomainRecordRequest);
+				DNSDomainRecordResponse dnsDomainRecordResponse;
+				try {
+					dnsDomainRecordResponse =  createDNSRecord(toDomainDetails.getId(), dnsDomainRecordRequest);
+				} catch(DNSMadeEasyException e) {
+					dnsDomainRecordResponse = new DNSDomainRecordResponse();
+					String [] error = {"Unable to clone the record with name : " + dnsDomainRecordRequest.getName() };
+					dnsDomainRecordResponse.setError(error);
+				}
 				recordResponses.add(dnsDomainRecordResponse);
 			}
 		}
@@ -729,13 +758,28 @@ public class DNSMadeEasyClient {
 				throw e;
 			}
 			String recordName  = getRecordName(dnsDomainRecordRequest.getName());
-			if (dnsDomainRecordRequest.getType() != ANAME.toString()) {
+			if (!dnsDomainRecordRequest.getType().equalsIgnoreCase(ANAME.toString())) {
 				dnsDomainRecordRequest.setName(recordName);
 			} else {
 				dnsDomainRecordRequest.setName("");
 			}
-			DNSDomainRecordResponse dnsDomainRecordResponse = createDNSRecord(domain.getId(), dnsDomainRecordRequest);
-			recordResponses.add(dnsDomainRecordResponse);
+			if (domain != null) {
+				DNSDomainRecordResponse dnsDomainRecordResponse;
+				try {
+					dnsDomainRecordResponse = createDNSRecord(domain.getId(), dnsDomainRecordRequest);
+				} catch(DNSMadeEasyException e) {
+					dnsDomainRecordResponse = new DNSDomainRecordResponse();
+					String [] error = {"Unable to create record with name : " + dnsDomainRecordRequest.getName() };
+					dnsDomainRecordResponse.setError(error);
+				}
+				recordResponses.add(dnsDomainRecordResponse);
+			} else {
+				DNSDomainRecordResponse dnsDomainRecordResponse = new DNSDomainRecordResponse();
+				String [] error = {"Unable to find domain  for the record with name : " + dnsDomainRecordRequest
+						.getName() + " to be imported" };
+				dnsDomainRecordResponse.setError(error);
+				recordResponses.add(dnsDomainRecordResponse);
+			}
 		}
 		result.setRecords(recordResponses);
 		if (domain != null) {
@@ -774,9 +818,9 @@ public class DNSMadeEasyClient {
 				log.error("Error occurred while getting domains ");
 				throw getError(e, e.getMessage(), HttpStatus.SC_BAD_REQUEST);
 			}
-			log.info("Domains fetched successfully");
 			for (DNSDomainResponse dnsDomainResponse : domains.getData()) {
 				if (dnsDomainResponse.getName().equalsIgnoreCase(domainName)) {
+					log.info("Domain : " + domainName + " found successfully");
 					result = dnsDomainResponse;
 				}
 			}

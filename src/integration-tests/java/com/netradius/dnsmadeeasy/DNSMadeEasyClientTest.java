@@ -176,10 +176,11 @@ public class DNSMadeEasyClientTest {
 			ManagedDNSResponse deleteDomainResponse =  client.deleteDomain(String.valueOf(domainDetails.getId()));
 			assertTrue(deleteDomainResponse != null);
 
+			log.info("Exporting domain with id : " + domainDetails.getId() + " and name : " + domainDetails.getName());
 			DNSZoneExportResponse dnsZoneExportResponse = client.exportZone(domainDetails.getName());
 			assertTrue(dnsZoneExportResponse != null);
 		} catch (DNSMadeEasyException e) {
-			log.error(e.toString(), e);
+			log.error(e.getMessage(), e);
 			assertTrue(false);
 		}
 	}
@@ -208,19 +209,21 @@ public class DNSMadeEasyClientTest {
 			response =  client.deleteDomains(ids);
 			assertTrue(response != null);
 		} catch (DNSMadeEasyException e) {
-			log.error(e.toString(), e);
+			log.error(e.getMessage(), e);
 			assertTrue(false);
 		}
 	}
 
-	// @Test commented as they are hard coded
+	//@Test commented as the domain definition dependent
 	public void testDomainImport() {
 		try {
+			log.info("Importing Zone definition file records ...");
 			File zoneDefinition = new File("src/integration-tests/resources/zoneimport.txt");
 			DNSZoneImportResponse dnsZoneImportResponse = client.importZone(zoneDefinition);
 			assertTrue(dnsZoneImportResponse != null);
+			log.info("Importing Zone definition file records completed.");
 		} catch (DNSMadeEasyException e) {
-			log.error(e.toString(), e);
+			log.error(e.getMessage(), e);
 			assertTrue(false);
 		}
 
@@ -229,10 +232,10 @@ public class DNSMadeEasyClientTest {
 	// @Test commented as they are hard coded
 	public void testDomainClone() {
 		try {
-			DNSZoneImportResponse dnsZoneImportResponse = client.cloneZone("testdomain82759.com", "mytest12.com");
+			DNSZoneImportResponse dnsZoneImportResponse = client.cloneZone("mytest8.com", "mytest10.com");
 			assertTrue(dnsZoneImportResponse != null);
 		} catch (DNSMadeEasyException e) {
-			log.error(e.toString(), e);
+			log.error(e.getMessage(), e);
 			assertTrue(false);
 		}
 
