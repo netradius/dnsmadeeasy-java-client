@@ -1,5 +1,6 @@
 package com.netradius.dnsmadeeasy;
 
+import com.netradius.dnsmadeeasy.assembler.DNSRecordResponseAssembler;
 import com.netradius.dnsmadeeasy.assembler.DNSRecordRequestResponseAssembler;
 import com.netradius.dnsmadeeasy.assembler.DNSZoneExportResponseAssembler;
 import com.netradius.dnsmadeeasy.data.*;
@@ -47,6 +48,7 @@ public class DNSMadeEasyClient {
 			DNSZoneExportResponseAssembler();
 	private static final DNSRecordRequestResponseAssembler dNSRecordRequestResponseAssembler = new
 			DNSRecordRequestResponseAssembler();
+	private static final DNSRecordResponseAssembler dNSRecordResponseAssembler = new DNSRecordResponseAssembler();
 
 
 	private void settMapperProperties() {
@@ -595,7 +597,7 @@ public class DNSMadeEasyClient {
 	 * @return The Zone information
 	 * @throws DNSMadeEasyException thrown in case of error
 	 */
-	public DNSZoneExportResponse exportZone(String domainName) throws DNSMadeEasyException {
+	public String exportZone(String domainName) throws DNSMadeEasyException {
 		DNSZoneExportResponse result;
 		DNSDomainResponse domainDetails = null;
 		ManagedDNSResponse domains = getDomains();
@@ -616,7 +618,14 @@ public class DNSMadeEasyClient {
 		if (result != null) {
 			log.debug(result.toString());
 		}
-		return result;
+		String json;
+		try {
+			json = mapper.writeValueAsString(result);
+		} catch (IOException e) {
+			log.error("Error occurred while preparing json response for Zone export of domain :" + domainName);
+			throw getError(e, e.getMessage(), HttpStatus.SC_BAD_REQUEST);
+		}
+		return json;
 	}
 
 	/**
@@ -627,7 +636,7 @@ public class DNSMadeEasyClient {
 	 * @return The imported zone details are import successful
 	 * @throws DNSMadeEasyException in case any error occurs
 	 */
-	public DNSZoneImportResponse importZone(File zoneDefinition) throws DNSMadeEasyException {
+	public DNSZoneImportResponse importZoneFromZoneDefinition(File zoneDefinition) throws DNSMadeEasyException {
 		DNSZoneImportResponse result = null;
 		// read the file using Scanner, try-with-resources
 		String nextLine;
@@ -725,15 +734,7 @@ public class DNSMadeEasyClient {
 				recordRequests.add(recordRequest);
 			}
 			for (DNSDomainRecordRequest dnsDomainRecordRequest : recordRequests) {
-				DNSDomainRecordResponse dnsDomainRecordResponse;
-				try {
-					dnsDomainRecordResponse =  createDNSRecord(toDomainDetails.getId(), dnsDomainRecordRequest);
-				} catch(DNSMadeEasyException e) {
-					dnsDomainRecordResponse = new DNSDomainRecordResponse();
-					String [] error = {"Unable to clone the record with name : " + dnsDomainRecordRequest.getName() };
-					dnsDomainRecordResponse.setError(error);
-				}
-				recordResponses.add(dnsDomainRecordResponse);
+				createDNSRecord(toDomainDetails.getId(), recordResponses, dnsDomainRecordRequest);
 			}
 		}
 		result.setRecords(recordResponses);
@@ -743,6 +744,99 @@ public class DNSMadeEasyClient {
 		}
 
 		return result;
+	}
+
+	private void createDNSRecord(Long domainId, List<DNSDomainRecordResponse> recordResponses, DNSDomainRecordRequest dnsDomainRecordRequest) {
+		DNSDomainRecordResponse dnsDomainRecordResponse;
+		try {
+			dnsDomainRecordResponse =  createDNSRecord(domainId, dnsDomainRecordRequest);
+		} catch(DNSMadeEasyException e) {
+			dnsDomainRecordResponse = new DNSDomainRecordResponse();
+			String [] error = {"Unable to create the record with name : " + dnsDomainRecordRequest.getName() };
+			dnsDomainRecordResponse.setError(error);
+		}
+		recordResponses.add(dnsDomainRecordResponse);
+	}
+
+	public DNSZoneImportResponse importZone(File jsonDomainFile) throws DNSMadeEasyException {
+		DNSZoneImportResponse result = new DNSZoneImportResponse();
+		ObjectMapper mapper = new ObjectMapper();
+		DNSZoneImportRequest jsonImport;
+		try {
+			 jsonImport = mapper.readValue(jsonDomainFile, DNSZoneImportRequest.class);
+		} catch (IOException e) {
+			log.error("Error occurred while parsing the JSON file " + e);
+			throw new DNSMadeEasyException(HttpStatus.SC_NOT_FOUND, "Unable to parse the JSON File", e);
+		}
+
+		if (jsonImport != null) {
+			result = processZoneImport(jsonImport);
+		}
+
+		return result;
+	}
+
+	private DNSZoneImportResponse processZoneImport(DNSZoneImportRequest jsonImport) {
+		DNSZoneImportResponse retDNSZoneImportResponse;
+		List<DNSDomainRecordRequest> recordRequests = new ArrayList<>();
+		for (DNSDomainRecordResponse recordResponse : jsonImport.getRecords()) {
+			DNSDomainRecordRequest recordRequest = dNSRecordRequestResponseAssembler.assemble
+					(recordResponse);
+			recordRequest.setId(null);
+			recordRequests.add(recordRequest);
+		}
+		retDNSZoneImportResponse = importRecords(recordRequests, jsonImport.getId());
+		return retDNSZoneImportResponse;
+	}
+
+	private DNSZoneImportResponse importRecords(List<DNSDomainRecordRequest> recordRequests, long domainId) {
+		DNSZoneImportResponse result = new DNSZoneImportResponse();
+		List<DNSDomainRecordResponse> recordResponses = new ArrayList<>();
+		if (recordRequests != null && !recordRequests.isEmpty()) {
+			for (DNSDomainRecordRequest recordRequest : recordRequests) {
+				DNSDomainRecordResponse dnsDomainRecordResponse;
+				// check if the record already exists
+				ManagedDNSRecordsResponse recordsResponse;
+				try {
+					recordsResponse = getDNSRecordByTypeAndRecordName(domainId, recordRequest.getType(), recordRequest.getName());
+				} catch (DNSMadeEasyException e) {
+					log.error("Error occurred while trying to fetch if record already existed in DNS " + e);
+					dnsDomainRecordResponse = new DNSDomainRecordResponse();
+					String [] error = {"Unable to fetch the record with name : " + recordRequest.getName() + " and " +
+							"type : " + recordRequest.getType()};
+					dnsDomainRecordResponse.setError(error);
+					continue;
+				}
+				if (recordsResponse != null && recordsResponse.getData().length == 0) {
+					// create the record
+					createDNSRecord(domainId, recordResponses, recordRequest);
+				} else {
+					// update the record
+					recordRequest.setId(recordsResponse.getData()[0].getId());
+					updateDNSRecord(domainId, recordResponses, recordRequest);
+				}
+			}
+		}
+		result.setRecords(recordResponses);
+
+		return result;
+	}
+
+	private void updateDNSRecord(long domainId, List<DNSDomainRecordResponse> recordResponses, DNSDomainRecordRequest recordRequest) {
+		DNSDomainRecordResponse dnsDomainRecordResponse;
+		Boolean result = false;
+		try {
+			 result =  updateDNSRecord(domainId, recordRequest);
+		} catch(DNSMadeEasyException e) {
+			dnsDomainRecordResponse = new DNSDomainRecordResponse();
+			String [] error = {"Unable to update the record with name : " + recordRequest.getName() + " and type : "
+					+ recordRequest.getType()};
+			dnsDomainRecordResponse.setUpdateSuccess(false);
+			dnsDomainRecordResponse.setError(error);
+		}
+		dnsDomainRecordResponse = dNSRecordResponseAssembler.assemble(recordRequest);
+		dnsDomainRecordResponse.setUpdateSuccess(result);
+		recordResponses.add(dnsDomainRecordResponse);
 	}
 
 	private DNSZoneImportResponse importRecords(List<DNSDomainRecordRequest> recordRequests) throws DNSMadeEasyException {

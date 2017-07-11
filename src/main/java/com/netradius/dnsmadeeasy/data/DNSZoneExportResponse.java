@@ -13,6 +13,7 @@ import java.io.Serializable;
 @Data
 @JsonIgnoreProperties( ignoreUnknown = true )
 public class DNSZoneExportResponse implements Serializable {
+	private static final long serialVersionUID = 9190853521564687354L;
 
 	private String name;
 	private long id;

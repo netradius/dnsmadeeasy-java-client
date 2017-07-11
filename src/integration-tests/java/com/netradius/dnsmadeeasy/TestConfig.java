@@ -9,6 +9,8 @@ import java.io.InputStream;
 import java.util.Properties;
 
 /**
+ * Test related config details
+ *
  * @author Abhijeet C Kale
  */
 @Slf4j
