@@ -215,52 +215,53 @@ public class DNSMadeEasyClientTest {
 	}
 
 	//@Test commented as the domain definition dependent
-	public void testDomainImportWithZoneDefinition() {
-		try {
-			log.info("Importing Zone definition file records ...");
-			File zoneDefinition = new File("src/integration-tests/resources/zoneimport.txt");
-			DNSZoneImportResponse dnsZoneImportResponse = client.importZoneFromZoneDefinition(zoneDefinition);
-			assertTrue(dnsZoneImportResponse != null);
-			log.info("Importing Zone definition file records completed.");
-		} catch (DNSMadeEasyException e) {
-			log.error(e.getMessage(), e);
-			assertTrue(false);
-		}
-
-	}
-
-	// @Test commented as they are hard coded
 	public void testDomainClone() {
 		try {
-			DNSZoneImportResponse dnsZoneImportResponse = client.cloneZone("mytest8.com", "mytest10.com");
+			DNSZoneImportResponse dnsZoneImportResponse = client.cloneZone("testimport1.com", "testdomain4010.com");
 			assertTrue(dnsZoneImportResponse != null);
 		} catch (DNSMadeEasyException e) {
 			log.error(e.getMessage(), e);
 			assertTrue(false);
 		}
-
 	}
 
-	//@Test
-	public void testDomainExport() {
-		log.info("Exporting domain with name : testdomain82759.com");
-		try {
-			String dnsZoneExportResponse = client.exportZone("testdomain82759.com");
-			assertTrue(dnsZoneExportResponse != null);
-		} catch (DNSMadeEasyException e) {
-			log.error(e.getMessage(), e);
-			assertTrue(false);
-		}
-	}
-
-	//@Test
+	@Test
 	public void testDomainImport() {
 		try {
-			log.info("Importing Zone definition file records ...");
+			log.info("Importing Zone json file ...");
 			File jsonZone = new File("src/integration-tests/resources/zoneimport.json");
 			DNSZoneImportResponse dnsZoneImportResponse = client.importZone(jsonZone);
+			log.info("Importing Zone Json file records completed.");
 			assertTrue(dnsZoneImportResponse != null);
-			log.info("Importing Zone definition file records completed.");
+			log.info("Exporting Zone json file ...");
+			String dnsZoneExport = client.exportZone(dnsZoneImportResponse.getName());
+			log.info("Exporting Zone json file completed");
+			assertTrue(dnsZoneExport != null);
+			assertTrue(dnsZoneExport.contains(dnsZoneImportResponse.getName()));
+			log.info("Fetching a record for domain with id : " + dnsZoneImportResponse.getId() + " and name : " +
+					dnsZoneImportResponse.getName() + " with type : " + TYPE_A + " and record name " + SITE_1);
+			ManagedDNSRecordsResponse  dnsRecordByTypeAndRecordNameResponse =  client.getDNSRecordByTypeAndRecordName
+					(dnsZoneImportResponse.getId(), TYPE_A, SITE_1);
+			assertTrue(dnsRecordByTypeAndRecordNameResponse.getData()[0].getName().equalsIgnoreCase(SITE_1));
+			assertTrue(dnsRecordByTypeAndRecordNameResponse.getData()[0].getType().equalsIgnoreCase(TYPE_A));
+			// update some records
+			DNSDomainRecordRequest recordRequest = new DNSDomainRecordRequest();
+			recordRequest.setGtdLocation(DEFAULT_GTD_LOCATION);
+			recordRequest.setName(SITE_1);
+			recordRequest.setType(TYPE_A);
+			recordRequest.setTtl(TTL);
+			recordRequest.setId(dnsRecordByTypeAndRecordNameResponse.getData()[0].getId());
+			recordRequest.setValue(SITE_1_VALUE_UPDATE);
+			log.info("Updating a DNS record for domain with id : " + dnsZoneImportResponse.getId() + " and name : " +
+					dnsZoneImportResponse.getName());
+
+			boolean updateDNSRecord =  client.updateDNSRecord(dnsZoneImportResponse.getId(), recordRequest);
+			assertTrue(updateDNSRecord);
+			// restore the zone
+			dnsZoneImportResponse = client.importZone(dnsZoneExport);
+			assertTrue(dnsZoneImportResponse != null);
+
+			log.info("Importing Zone json file records completed.");
 		} catch (DNSMadeEasyException e) {
 			log.error(e.getMessage(), e);
 			assertTrue(false);

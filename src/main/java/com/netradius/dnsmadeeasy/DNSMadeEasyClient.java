@@ -73,7 +73,7 @@ public class DNSMadeEasyClient {
 		settMapperProperties();
 		ManagedDNSRequestJson domainRequest = new ManagedDNSRequestJson();
 		domainRequest.setName(domainName);
-		String json = null;
+		String json;
 		try {
 			json = mapper.writeValueAsString(domainRequest);
 		} catch (IOException e) {
@@ -163,7 +163,12 @@ public class DNSMadeEasyClient {
 
 		if (response != null) {
 			try {
-				result = mapper.readValue(response.getEntity().getContent(), DNSDomainResponse.class);
+				if (response.getStatusLine().getStatusCode() != HttpStatus.SC_NOT_FOUND) {
+					result = mapper.readValue(response.getEntity().getContent(), DNSDomainResponse.class);
+				} else {
+					throw new DNSMadeEasyException(HttpStatus.SC_NOT_FOUND, "Unable to find domain with id: " +
+							domainId, null);
+				}
 			} catch (IOException e) {
 				log.error("Error occurred while getting info for domain : " + domainId);
 				throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
@@ -725,7 +730,6 @@ public class DNSMadeEasyClient {
 		ManagedDNSRecordsResponse managedDNSRecordsResponse = getDNSRecord(fromDomainDetails.getId());
 		// create the DNSDomainRecordRequest
 		List<DNSDomainRecordRequest> recordRequests = new ArrayList<>();
-		List<DNSDomainRecordResponse> recordResponses = new ArrayList<>();
 		if (managedDNSRecordsResponse.getData() != null && managedDNSRecordsResponse.getData().length > 0) {
 			for (DNSDomainRecordResponse dnsDomainRecordResponse: managedDNSRecordsResponse.getData()) {
 				DNSDomainRecordRequest recordRequest = dNSRecordRequestResponseAssembler.assemble
@@ -733,11 +737,8 @@ public class DNSMadeEasyClient {
 				recordRequest.setId(null);
 				recordRequests.add(recordRequest);
 			}
-			for (DNSDomainRecordRequest dnsDomainRecordRequest : recordRequests) {
-				createDNSRecord(toDomainDetails.getId(), recordResponses, dnsDomainRecordRequest);
-			}
+			result = importRecords(recordRequests, toDomainDetails.getId());
 		}
-		result.setRecords(recordResponses);
 		if (fromDomainDetails != null) {
 			result.setName(fromDomainDetails.getName());
 			result.setId(fromDomainDetails.getId());
@@ -758,22 +759,116 @@ public class DNSMadeEasyClient {
 		recordResponses.add(dnsDomainRecordResponse);
 	}
 
+	/**
+	 * Imports a Zone for the given JSON information, if there is no zone/domain found
+	 * for the given id then a zone/domain is created and then information is added to the
+	 * new zone
+	 *
+	 * @param jsonDomainFile File containing zone information in JSON format
+	 * @return the Zone import process response
+	 * @throws DNSMadeEasyException thrown incase of error
+	 */
 	public DNSZoneImportResponse importZone(File jsonDomainFile) throws DNSMadeEasyException {
 		DNSZoneImportResponse result = new DNSZoneImportResponse();
 		ObjectMapper mapper = new ObjectMapper();
 		DNSZoneImportRequest jsonImport;
 		try {
-			 jsonImport = mapper.readValue(jsonDomainFile, DNSZoneImportRequest.class);
+			jsonImport = mapper.readValue(jsonDomainFile, DNSZoneImportRequest.class);
 		} catch (IOException e) {
 			log.error("Error occurred while parsing the JSON file " + e);
 			throw new DNSMadeEasyException(HttpStatus.SC_NOT_FOUND, "Unable to parse the JSON File", e);
 		}
 
+		return getDnsZoneImportResponse(result, jsonImport);
+	}
+
+	private DNSZoneImportResponse getDnsZoneImportResponse(DNSZoneImportResponse result, DNSZoneImportRequest jsonImport) throws DNSMadeEasyException {
 		if (jsonImport != null) {
+			// check if zone is existing in the system
+			if (jsonImport.getId() == null) {
+				// create the domain
+				ManagedDNSResponse managedDNSResponse = createDomain(jsonImport.getName());
+				handleDomainResponse(jsonImport, managedDNSResponse);
+			} else {
+				try {
+					DNSDomainResponse dnsDomainResponse = getDomain(jsonImport.getId());
+					if (dnsDomainResponse == null) {
+						// create the domain
+						ManagedDNSResponse managedDNSResponse = createDomain(jsonImport.getName());
+						handleDomainResponse(jsonImport, managedDNSResponse);
+					}
+				} catch (DNSMadeEasyException e) {
+					log.error("Domain not found for Id : " + jsonImport.getId());
+					if (e.getHttpStatus() == HttpStatus.SC_NOT_FOUND) {
+						log.info("Creating domain with name: " + jsonImport.getName());
+						ManagedDNSResponse managedDNSResponse = createDomain(jsonImport.getName());
+						handleDomainResponse(jsonImport, managedDNSResponse);
+					}
+				}
+			}
 			result = processZoneImport(jsonImport);
 		}
-
 		return result;
+	}
+
+	private void handleDomainResponse(DNSZoneImportRequest jsonImport, ManagedDNSResponse managedDNSResponse) throws DNSMadeEasyException {
+		if (managedDNSResponse.getError() == null) {
+			log.info("Domain created successfully");
+			DNSDomainResponse domainDetails = null;
+			ManagedDNSResponse domains = getDomains();
+			log.info("Domains fetched successfully");
+			for (DNSDomainResponse dnsDomainResponse : domains.getData()) {
+				if (dnsDomainResponse.getName().equalsIgnoreCase(jsonImport.getName())) {
+					domainDetails = dnsDomainResponse;
+				}
+			}
+			if (domainDetails != null) {
+				jsonImport.setId(domainDetails.getId());
+				jsonImport.setName(domainDetails.getName());
+			} else {
+				throw new DNSMadeEasyException(HttpStatus.SC_BAD_REQUEST, "Unable to create domain " +
+						"with name : " + jsonImport.getName(), null);
+			}
+		} else {
+			DNSDomainResponse domainDetails = null;
+			ManagedDNSResponse domains = getDomains();
+			log.info("Domains fetched successfully");
+			for (DNSDomainResponse dnsDomainResponse : domains.getData()) {
+				if (dnsDomainResponse.getName().equalsIgnoreCase(jsonImport.getName())) {
+					domainDetails = dnsDomainResponse;
+				}
+			}
+			if (domainDetails != null) {
+				jsonImport.setId(domainDetails.getId());
+				jsonImport.setName(domainDetails.getName());
+			} else {
+				throw new DNSMadeEasyException(HttpStatus.SC_BAD_REQUEST, "Unable to create or fetch domain " +
+						"with name : " + jsonImport.getName(), null);
+			}
+		}
+	}
+
+	/**
+	 * Imports a Zone for the given JSON information, if there is no zone/domain found
+	 * for the given id then a zone/domain is created and then information is added to the
+	 * new zone
+	 *
+	 * @param jsonDomain the string containing zone information in JSON format
+	 * @return the Zone import process response
+	 * @throws DNSMadeEasyException thrown incase of error
+	 */
+	public DNSZoneImportResponse importZone(String jsonDomain) throws DNSMadeEasyException {
+		DNSZoneImportResponse result = new DNSZoneImportResponse();
+		ObjectMapper mapper = new ObjectMapper();
+		DNSZoneImportRequest jsonImport;
+		try {
+			jsonImport = mapper.readValue(jsonDomain, DNSZoneImportRequest.class);
+		} catch (IOException e) {
+			log.error("Error occurred while parsing the JSON String " + e);
+			throw new DNSMadeEasyException(HttpStatus.SC_NOT_FOUND, "Unable to parse the JSON String", e);
+		}
+
+		return getDnsZoneImportResponse(result, jsonImport);
 	}
 
 	private DNSZoneImportResponse processZoneImport(DNSZoneImportRequest jsonImport) {
@@ -786,6 +881,8 @@ public class DNSMadeEasyClient {
 			recordRequests.add(recordRequest);
 		}
 		retDNSZoneImportResponse = importRecords(recordRequests, jsonImport.getId());
+		retDNSZoneImportResponse.setId(jsonImport.getId());
+		retDNSZoneImportResponse.setName(jsonImport.getName());
 		return retDNSZoneImportResponse;
 	}
 
@@ -808,9 +905,16 @@ public class DNSMadeEasyClient {
 					continue;
 				}
 				if (recordsResponse != null && recordsResponse.getData().length == 0) {
+					log.info("Creating record with name : " + recordRequest.getName()  + " and type : " +
+							recordRequest.getType());
 					// create the record
+					if (recordRequest.getType().equalsIgnoreCase(ANAME.toString())) {
+						recordRequest.setName("");
+					}
 					createDNSRecord(domainId, recordResponses, recordRequest);
 				} else {
+					log.info("Updating record with name : " + recordRequest.getName()  + " and type : " +
+							recordRequest.getType());
 					// update the record
 					recordRequest.setId(recordsResponse.getData()[0].getId());
 					updateDNSRecord(domainId, recordResponses, recordRequest);
