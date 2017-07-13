@@ -18,4 +18,5 @@ public class DNSZoneImportResponse implements Serializable {
 	private String name;
 	private long id;
 	private List<DNSDomainRecordResponse> records;
+	private ManagedDNSResponse domainConfUpdateResponse;
  }

@@ -213,7 +213,13 @@ public class DNSMadeEasyClient {
 		HttpResponse response = client.put(restUrl + "/dns/managed/" + domainId, json, apiKey, getSecretHash(requestDate), requestDate);
 		if (response != null) {
 			try {
-				result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
+				if (response.getStatusLine().getStatusCode() == HttpStatus.SC_BAD_REQUEST) {
+					result = mapper.readValue(response.getEntity().getContent(), ManagedDNSResponse.class);
+				} else if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+					String content = readStream(response.getEntity().getContent());
+					result = new ManagedDNSResponse();
+					result.setMessage(content);
+				}
 			} catch (IOException e) {
 				log.error("Error occurred while updating info for domain : " + domainId);
 				throw getError(e, e.getMessage(), response.getStatusLine().getStatusCode());
@@ -743,7 +749,9 @@ public class DNSMadeEasyClient {
 			result.setName(fromDomainDetails.getName());
 			result.setId(fromDomainDetails.getId());
 		}
-
+		// handle the template id and vanity id
+		updateDomainConfig(toDomainDetails.getId(), toDomainDetails.getName(), String.valueOf(fromDomainDetails.getVanityId()),
+				String.valueOf(fromDomainDetails.getTemplateId()), result);
 		return result;
 	}
 
@@ -875,22 +883,44 @@ public class DNSMadeEasyClient {
 		DNSZoneImportResponse retDNSZoneImportResponse;
 		List<DNSDomainRecordRequest> recordRequests = new ArrayList<>();
 		for (DNSDomainRecordResponse recordResponse : jsonImport.getRecords()) {
-			DNSDomainRecordRequest recordRequest = dNSRecordRequestResponseAssembler.assemble
-					(recordResponse);
+			DNSDomainRecordRequest recordRequest = dNSRecordRequestResponseAssembler.assemble(recordResponse);
 			recordRequest.setId(null);
 			recordRequests.add(recordRequest);
 		}
 		retDNSZoneImportResponse = importRecords(recordRequests, jsonImport.getId());
 		retDNSZoneImportResponse.setId(jsonImport.getId());
 		retDNSZoneImportResponse.setName(jsonImport.getName());
+		// handle the template id and vanity id
+		updateDomainConfig(jsonImport.getId(), jsonImport.getName(), String.valueOf(jsonImport.getVanityId()),
+				String.valueOf(jsonImport.getTemplateId()), retDNSZoneImportResponse);
+
 		return retDNSZoneImportResponse;
+	}
+
+	private void updateDomainConfig(Long domainId, String domainName, String vanityId, String templateId,
+			DNSZoneImportResponse retDNSZoneImportResponse) {
+		log.info("Updating Domain configuration for domain with id : " + domainId + " and name : " + domainName);
+		try {
+			ManagedDNSResponse updateDomainConfresponse =  updateDomainConfiguration(domainId, vanityId, templateId);
+			retDNSZoneImportResponse.setDomainConfUpdateResponse(updateDomainConfresponse);
+		} catch (DNSMadeEasyException e) {
+			log.error("Unable to update the domain configuration information for domain with id : " +
+					domainId + " and name : " + domainName);
+			ManagedDNSResponse updateDomainConfresponse = new ManagedDNSResponse();
+			String [] error = { "Unable to update the domain configuration information. Please have a look at logs " +
+					"for more details. " + e.getMessage() };
+			updateDomainConfresponse.setError(error);
+			retDNSZoneImportResponse.setDomainConfUpdateResponse(updateDomainConfresponse);
+		}
 	}
 
 	private DNSZoneImportResponse importRecords(List<DNSDomainRecordRequest> recordRequests, long domainId) {
 		DNSZoneImportResponse result = new DNSZoneImportResponse();
 		List<DNSDomainRecordResponse> recordResponses = new ArrayList<>();
 		if (recordRequests != null && !recordRequests.isEmpty()) {
-			for (DNSDomainRecordRequest recordRequest : recordRequests) {
+			List<DNSDomainRecordRequest> sortedRecordRequest  = recordRequests.stream().sorted((r1, r2) -> r1.getType().compareTo(r2.getType())).
+					collect(Collectors.toList());
+			for (DNSDomainRecordRequest recordRequest : sortedRecordRequest) {
 				DNSDomainRecordResponse dnsDomainRecordResponse;
 				// check if the record already exists
 				ManagedDNSRecordsResponse recordsResponse;

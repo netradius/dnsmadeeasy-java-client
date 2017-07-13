@@ -18,5 +18,6 @@ public class ManagedDNSResponse implements Serializable {
 	private static final long serialVersionUID = -7700939739782156853L;
 
 	private String [] error;
+	private String message;
 	private DNSDomainResponse [] data;
 }
