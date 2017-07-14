@@ -12,3 +12,9 @@ refers TestConfig.CONFIG_LOCATIONS for more information on the locations for the
 A sample file is checked in with the source code, 'dnsmadeeasyclient.properties'.
 
 mvn integration-test
+
+
+Note:
+During development I had encountered an issue of SSLHandshake while communicating to the REST API.
+It was resolved using the approach here https://www.mkyong
+.com/webservices/jax-ws/suncertpathbuilderexception-unable-to-find-valid-certification-path-to-requested-target/.
