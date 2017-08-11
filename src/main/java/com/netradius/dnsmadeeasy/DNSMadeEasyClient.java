@@ -1,5 +1,8 @@
 package com.netradius.dnsmadeeasy;
 
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+
 import com.netradius.dnsmadeeasy.assembler.DNSRecordResponseAssembler;
 import com.netradius.dnsmadeeasy.assembler.DNSRecordRequestResponseAssembler;
 import com.netradius.dnsmadeeasy.assembler.DNSZoneExportResponseAssembler;
@@ -20,11 +23,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
+
 
 import static com.netradius.dnsmadeeasy.data.RecordType.ANAME;
 
@@ -661,7 +664,7 @@ public class DNSMadeEasyClient {
 					}
 					// parse the record in the definition file
 					String [] row  = nextLine.split(" ");
-					if (row != null && (row.length >= 5)) {
+					if (row != null && row.length >= 5) {
 						DNSDomainRecordRequest dnsDomainRecordRequest = new DNSDomainRecordRequest();
 						dnsDomainRecordRequest.setName(row[0]); // name of the record
 						dnsDomainRecordRequest.setTtl(Long.parseLong(row[1])); // TTL value
@@ -778,7 +781,6 @@ public class DNSMadeEasyClient {
 	 */
 	public DNSZoneImportResponse importZone(File jsonDomainFile) throws DNSMadeEasyException {
 		DNSZoneImportResponse result = new DNSZoneImportResponse();
-		ObjectMapper mapper = new ObjectMapper();
 		DNSZoneImportRequest jsonImport;
 		try {
 			jsonImport = mapper.readValue(jsonDomainFile, DNSZoneImportRequest.class);
@@ -867,7 +869,6 @@ public class DNSMadeEasyClient {
 	 */
 	public DNSZoneImportResponse importZone(String jsonDomain) throws DNSMadeEasyException {
 		DNSZoneImportResponse result = new DNSZoneImportResponse();
-		ObjectMapper mapper = new ObjectMapper();
 		DNSZoneImportRequest jsonImport;
 		try {
 			jsonImport = mapper.readValue(jsonDomain, DNSZoneImportRequest.class);
@@ -1067,7 +1068,7 @@ public class DNSMadeEasyClient {
 	}
 
 	private void populateMXType(DNSDomainRecordRequest dnsDomainRecordRequest, String[] row) {
-		if (row.length >= 5 && row[4] != null && row[4] != "" ) {
+		if (row.length >= 5 && row[4] != null && !Objects.equals(row[4], "")) {
 			dnsDomainRecordRequest.setMxLevel(Integer.parseInt(row[4]));
 		}
 		if (row.length >= 6) {
@@ -1091,13 +1092,13 @@ public class DNSMadeEasyClient {
 	}
 
 	private void populateSRVType(DNSDomainRecordRequest dnsDomainRecordRequest, String[] row) {
-		if (row.length >= 5 && row[4] != null && row[4] != "" ) {
+		if (row.length >= 5 && row[4] != null && !Objects.equals(row[4], "")) {
 			dnsDomainRecordRequest.setPriority(Integer.parseInt(row[4]));
 		}
-		if (row.length >= 6 && row[5] != null && row[5] != "" ) {
+		if (row.length >= 6 && row[5] != null && !Objects.equals(row[5], "")) {
 			dnsDomainRecordRequest.setWeight(Integer.parseInt(row[5]));
 		}
-		if (row.length >= 7 && row[6] != null && row[6] != "" ) {
+		if (row.length >= 7 && row[6] != null && !Objects.equals(row[6], "")) {
 			dnsDomainRecordRequest.setPort(Integer.parseInt(row[6]));
 		}
 		if (row.length >= 8) {
@@ -1167,7 +1168,7 @@ public class DNSMadeEasyClient {
 		stringBuilder.append("[");
 		for (int i = 0; i < domainIds.length; i++) {
 			stringBuilder.append(domainIds[i]);
-			if (i < (domainIds.length - 1)) {
+			if (i < domainIds.length - 1) {
 				stringBuilder.append(",");
 			}
 		}

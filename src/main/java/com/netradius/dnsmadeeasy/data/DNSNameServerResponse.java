@@ -1,9 +1,8 @@
 package com.netradius.dnsmadeeasy.data;
 
 import lombok.Data;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-import java.io.Serializable;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 /**
  * Holds the DNS Name server response
@@ -12,8 +11,7 @@ import java.io.Serializable;
  */
 @Data
 @JsonIgnoreProperties( ignoreUnknown = true )
-public class DNSNameServerResponse implements Serializable {
-	private static final long serialVersionUID = 132604512294009105L;
+public class DNSNameServerResponse {
 
 	private String fqdn;
 	private String ipv4;

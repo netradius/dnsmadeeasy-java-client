@@ -1,10 +1,8 @@
 package com.netradius.dnsmadeeasy.data;
 
 import lombok.Data;
+
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-
-import java.io.Serializable;
-
 
 /**
  * Holds the DNS Managed Api responses
@@ -14,8 +12,7 @@ import java.io.Serializable;
 
 @Data
 @JsonIgnoreProperties( ignoreUnknown = true )
-public class ManagedDNSRecordsResponse implements Serializable {
-	private static final long serialVersionUID = -2218375262213914941L;
+public class ManagedDNSRecordsResponse {
 
 	private String [] error;
 	private DNSDomainRecordResponse [] data;

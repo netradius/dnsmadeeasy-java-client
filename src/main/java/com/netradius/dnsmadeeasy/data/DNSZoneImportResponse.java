@@ -1,9 +1,9 @@
 package com.netradius.dnsmadeeasy.data;
 
 import lombok.Data;
+
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -13,7 +13,7 @@ import java.util.List;
  */
 @Data
 @JsonIgnoreProperties( ignoreUnknown = true )
-public class DNSZoneImportResponse implements Serializable {
+public class DNSZoneImportResponse {
 
 	private String name;
 	private long id;

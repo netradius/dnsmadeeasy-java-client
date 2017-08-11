@@ -1,9 +1,8 @@
 package com.netradius.dnsmadeeasy.data;
 
 import lombok.Data;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-import java.io.Serializable;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 /**
  * Holds the DNSMadeEasy Rest Api responses
@@ -12,7 +11,6 @@ import java.io.Serializable;
  */
 @Data
 @JsonIgnoreProperties( ignoreUnknown = true )
-public class DNSZoneImportRequest extends DNSZoneExportResponse implements Serializable {
+public class DNSZoneImportRequest extends DNSZoneExportResponse {
 
-	private static final long serialVersionUID = -8473248702802113754L;
 }

@@ -1,13 +1,10 @@
 package com.netradius.dnsmadeeasy.assembler;
 
+import lombok.extern.slf4j.Slf4j;
+import lombok.NonNull;
 
 import com.netradius.dnsmadeeasy.data.DNSDomainRecordRequest;
 import com.netradius.dnsmadeeasy.data.DNSDomainRecordResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.beanutils.BeanUtils;
-
-import javax.annotation.Nonnull;
-import java.lang.reflect.InvocationTargetException;
 
 /**
  * Adds DNSDomainRecordResponse properties to DNSDomainRecordRequest
@@ -15,7 +12,8 @@ import java.lang.reflect.InvocationTargetException;
  * @author Abhijeet C Kale
  */
 @Slf4j
-public class DNSRecordRequestResponseAssembler extends Assembler<DNSDomainRecordResponse, DNSDomainRecordRequest>{
+public class DNSRecordRequestResponseAssembler extends Assembler<DNSDomainRecordResponse,
+		DNSDomainRecordRequest>{
 	@Override
 	public Class<DNSDomainRecordRequest> getType() {
 		return DNSDomainRecordRequest.class;
@@ -28,13 +26,17 @@ public class DNSRecordRequestResponseAssembler extends Assembler<DNSDomainRecord
 	 * @param to   the destination
 	 */
 	@Override
-	public void merge(@Nonnull DNSDomainRecordResponse from, @Nonnull DNSDomainRecordRequest to) {
-		try {
-			BeanUtils.copyProperties(to, from);
-		} catch (IllegalAccessException e) {
-			log.error("Error occurred while assembling DNSDomainRecordRequest from DNSDomainResponse : ", e);
-		} catch (InvocationTargetException e) {
-			log.error("Error occurred while assembling DNSDomainRecordRequest from DNSDomainResponse : ", e);
-		}
+	public void merge(@NonNull DNSDomainRecordResponse from, @NonNull DNSDomainRecordRequest to) {
+		to.setName(from.getName());
+		to.setGtdLocation(from.getGtdLocation());
+		to.setPort(from.getPort());
+		to.setId(from.getId());
+		to.setPriority(from.getPriority());
+		to.setValue(from.getValue());
+		to.setWeight(from.getWeight());
+		to.setMxLevel(from.getMxLevel());
+		to.setSource(from.getSource());
+		to.setTtl(Long.parseLong(from.getTtl()));
+		to.setType(from.getType());
 	}
 }

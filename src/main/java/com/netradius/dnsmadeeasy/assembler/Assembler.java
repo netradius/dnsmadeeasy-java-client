@@ -1,7 +1,12 @@
 package com.netradius.dnsmadeeasy.assembler;
 
-import javax.annotation.Nonnull;
-import java.util.*;
+import lombok.NonNull;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Contact for all assemblers.
@@ -18,8 +23,8 @@ public abstract class Assembler<F,T> {
 	 * @param from the source object, or null
 	 * @return the created object or null if the source was null
 	 */
-	@Nonnull
-	public T assemble(@Nonnull F from) {
+	@NonNull
+	public T assemble(@NonNull F from) {
 		try {
 			T to = getType().newInstance();
 			merge(from, to);
@@ -35,8 +40,8 @@ public abstract class Assembler<F,T> {
 	 * @param from the object sources
 	 * @return the assembled objects
 	 */
-	@Nonnull
-	public List<T> assemble(@Nonnull List<F> from) {
+	@NonNull
+	public List<T> assemble(@NonNull List<F> from) {
 		return assemble(from, new ArrayList<>(from.size()));
 	}
 
@@ -46,8 +51,8 @@ public abstract class Assembler<F,T> {
 	 * @param from the object sources
 	 * @return the assembled objects
 	 */
-	@Nonnull
-	public Set<T> assemble(@Nonnull Set<F> from) {
+	@NonNull
+	public Set<T> assemble(@NonNull Set<F> from) {
 		return assemble(from, new HashSet<>(from.size()));
 	}
 
@@ -61,7 +66,7 @@ public abstract class Assembler<F,T> {
 	 * @param <C> the collection type
 	 * @return the destination collection
 	 */
-	@Nonnull
+	@NonNull
 	public <C extends Collection<T>> C assemble(Collection<F> from, C to) {
 		for (F fobj : from) {
 			to.add(assemble(fobj));
@@ -69,7 +74,7 @@ public abstract class Assembler<F,T> {
 		return to;
 	}
 
-	@Nonnull
+	@NonNull
 	public List<T> assemble(Iterable<F> from) {
 		ArrayList<T> to = new ArrayList<>();
 		for (F f : from) {
@@ -84,6 +89,6 @@ public abstract class Assembler<F,T> {
 	 * @param from the source
 	 * @param to the destination
 	 */
-	public abstract void merge(@Nonnull F from, @Nonnull T to);
+	public abstract void merge(@NonNull F from, @NonNull T to);
 
 }

@@ -1,9 +1,8 @@
 package com.netradius.dnsmadeeasy.data;
 
 import lombok.Data;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-import java.io.Serializable;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 /**
  * Json Document for Domain Request
@@ -12,8 +11,7 @@ import java.io.Serializable;
  */
 @Data
 @JsonIgnoreProperties( ignoreUnknown = true )
-public class ManagedDNSRequestJson implements Serializable {
-	private static final long serialVersionUID = -8477554856279865763L;
+public class ManagedDNSRequestJson {
 
 	String name;
 	String vanityId;

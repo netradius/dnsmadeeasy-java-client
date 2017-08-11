@@ -1,13 +1,10 @@
 package com.netradius.dnsmadeeasy.assembler;
 
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 import com.netradius.dnsmadeeasy.data.DNSDomainResponse;
 import com.netradius.dnsmadeeasy.data.DNSZoneExportResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.beanutils.BeanUtils;
-
-import javax.annotation.Nonnull;
-import java.lang.reflect.InvocationTargetException;
 
 /**
  * Adds Domain Response properties to DNSZoneExport
@@ -15,7 +12,8 @@ import java.lang.reflect.InvocationTargetException;
  * @author Abhijeet C Kale
  */
 @Slf4j
-public class DNSZoneExportResponseAssembler extends Assembler<DNSDomainResponse, DNSZoneExportResponse>{
+public class DNSZoneExportResponseAssembler extends Assembler<DNSDomainResponse,
+		DNSZoneExportResponse>{
 	@Override
 	public Class<DNSZoneExportResponse> getType() {
 		return DNSZoneExportResponse.class;
@@ -28,13 +26,21 @@ public class DNSZoneExportResponseAssembler extends Assembler<DNSDomainResponse,
 	 * @param to   the destination
 	 */
 	@Override
-	public void merge(@Nonnull DNSDomainResponse from, @Nonnull DNSZoneExportResponse to) {
-		try {
-			BeanUtils.copyProperties(to, from);
-		} catch (IllegalAccessException e) {
-			log.error("Error occurred while assembling DNSZoneExportResponse from DNSDomainResponse : ", e);
-		} catch (InvocationTargetException e) {
-			log.error("Error occurred while assembling DNSZoneExportResponse from DNSDomainResponse : ", e);
-		}
+	public void merge(@NonNull DNSDomainResponse from, @NonNull DNSZoneExportResponse to) {
+		to.setActiveThirdParties(from.getActiveThirdParties());
+		to.setAxfrServer(from.getAxfrServer());
+		to.setCreated(from.getCreated());
+		to.setFolderId(from.getFolderId());
+		to.setGtdEnabled(from.getGtdEnabled());
+		to.setId(from.getId());
+		to.setName(from.getName());
+		to.setNameServers(from.getNameServers());
+		to.setProcessMulti(from.getProcessMulti());
+		to.setPendingActionId(from.getPendingActionId());
+		to.setSoaID(from.getSoaID());
+		to.setTransferAclId(from.getTransferAclId());
+		to.setUpdated(from.getUpdated());
+		to.setVanityNameServers(from.getVanityNameServers());
+		to.setVanityId(from.getVanityId());
 	}
 }
