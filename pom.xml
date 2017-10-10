@@ -7,16 +7,14 @@
 	<version>1.0-SNAPSHOT</version>
 	<name>dnsmadeeasy-java-client</name>
 	<properties>
-		<!--Build properties-->
+		<!-- Build Settings -->
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>1.8</java.version>
-		<compiler.optimize>false</compiler.optimize>
-		<compiler.debug>true</compiler.debug>
 		<log4j.configuration>src/main/resources/log4j.properties</log4j.configuration>
 
 		<!--Plugin versions-->
 		<build-helper-maven-plugin.version>1.9.1</build-helper-maven-plugin.version>
-		<maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
 		<maven-javadoc-plugin.version>2.9.1</maven-javadoc-plugin.version>
 		<versions-maven-plugin.version>2.1</versions-maven-plugin.version>
 		<maven-failsafe-plugin.version>2.18.1</maven-failsafe-plugin.version>
@@ -71,17 +69,6 @@
 	</dependencies>
 	<build>
 		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>${maven-compiler-plugin.version}</version>
-				<configuration>
-					<source>${java.version}</source>
-					<target>${java.version}</target>
-					<optimize>${compiler.optimize}</optimize>
-					<debug>${compiler.debug}</debug>
-				</configuration>
-			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>versions-maven-plugin</artifactId>
@@ -161,69 +148,13 @@
 	<distributionManagement>
 		<repository>
 			<id>netradius-releases</id>
-			<name>NetRadius Releases Repository</name>
-			<url>https://mirrors.netradius.com/nexus/content/repositories/releases</url>
+			<name>Netradius Release Repository</name>
+			<url>https://nexus.netradius.net/repository/netradius-releases</url>
 		</repository>
 		<snapshotRepository>
 			<id>netradius-snapshots</id>
-			<name>NetRadius Snapshots Repository</name>
-			<url>https://mirrors.netradius.com/nexus/content/repositories/snapshots</url>
+			<name>Netradius Snapshots Repository</name>
+			<url>https://nexus.netradius.net/repository/netradius-snapshots/</url>
 		</snapshotRepository>
 	</distributionManagement>
-	<repositories>
-		<repository>
-			<id>netradius-public-releases</id>
-			<name>NetRadius Public Release Repository</name>
-			<url>http://mirrors.netradius.com/nexus/content/groups/public</url>
-			<releases>
-				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
-				<checksumPolicy>warn</checksumPolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-		<repository>
-			<id>netradius-public-snapshots</id>
-			<name>NetRadius Public Snapshot Repository</name>
-			<url>https://mirrors.netradius.com/nexus/content/groups/public-snapshots</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-			<snapshots>
-				<enabled>true</enabled>
-				<updatePolicy>always</updatePolicy>
-				<checksumPolicy>warn</checksumPolicy>
-			</snapshots>
-		</repository>
-	</repositories>
-	<pluginRepositories>
-		<pluginRepository>
-			<id>netradius-public-releases</id>
-			<name>NetRadius Public Release Repository</name>
-			<url>http://mirrors.netradius.com/nexus/content/groups/public</url>
-			<releases>
-				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
-				<checksumPolicy>warn</checksumPolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</pluginRepository>
-		<pluginRepository>
-			<id>netradius-public-snapshots</id>
-			<name>NetRadius Public Snapshot Repository</name>
-			<url>https://mirrors.netradius.com/nexus/content/groups/public-snapshots</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-			<snapshots>
-				<enabled>true</enabled>
-				<updatePolicy>always</updatePolicy>
-				<checksumPolicy>warn</checksumPolicy>
-			</snapshots>
-		</pluginRepository>
-	</pluginRepositories>
 </project>
