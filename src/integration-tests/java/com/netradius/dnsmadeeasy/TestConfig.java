@@ -20,7 +20,8 @@ public class TestConfig {
 			"C:\\dnsmadeeasy-client.properties",
 			"/etc/dnsmadeeasy-client.properties",
 			System.getProperty("user.home") + "/dnsmadeeasy-client.properties",
-			System.getProperty("user.dir") + "/dnsmadeeasy-client.properties"};
+			System.getProperty("user.dir") + "/dnsmadeeasy-client.properties",
+			"src/main/resources/dnsmadeeasyclient.properties"};
 
 	private Properties properties;
 
