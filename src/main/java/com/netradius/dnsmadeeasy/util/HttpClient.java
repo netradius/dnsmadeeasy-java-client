@@ -7,11 +7,18 @@ import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
 
 import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * Rest Client which will make calls to the DNS Rest API exposed
@@ -23,7 +30,7 @@ public class HttpClient {
 
 	public HttpResponse post(String url, String json, String apiKey, String secretKeyHash, String requestDate) {
 
-		CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+		CloseableHttpClient httpClient = getCloseableHttpClient();
 		HttpPost post = getHttpPost(url, json, apiKey, secretKeyHash, requestDate);
 		HttpResponse response = null;
 
@@ -34,6 +41,24 @@ public class HttpClient {
 		}
 
 		return response;
+	}
+
+	private CloseableHttpClient getCloseableHttpClient() {
+		SSLContextBuilder builder = new SSLContextBuilder();
+		try {
+			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+		} catch (NoSuchAlgorithmException | KeyStoreException e) {
+			log.error("Unable to build the SSL Context.  " + e.getMessage(), e);
+		}
+		SSLConnectionSocketFactory sslConnectionSocketFactory = null;
+		try {
+			sslConnectionSocketFactory = new SSLConnectionSocketFactory(builder.build(),
+					NoopHostnameVerifier.INSTANCE);
+		} catch (NoSuchAlgorithmException | KeyManagementException e) {
+			log.error("Unable to create the SSL socket.  " + e.getMessage(), e);
+		}
+		return HttpClients.custom().setSSLSocketFactory(sslConnectionSocketFactory)
+				.build();
 	}
 
 	private HttpPost getHttpPost(String url, String json, String apiKey, String secretKeyHash, String requestDate) {
@@ -50,7 +75,7 @@ public class HttpClient {
 	}
 
 	public HttpResponse get(String url,  String apiKey, String secretKeyHash, String requestDate) {
-		CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+		CloseableHttpClient httpClient = getCloseableHttpClient();
 		HttpGet get = getHttpGet(url, apiKey, secretKeyHash, requestDate);
 
 		return getHttpResponse(httpClient, get);
@@ -71,7 +96,7 @@ public class HttpClient {
 	}
 
 	public HttpResponse delete(String url, String deleteRequest, String apiKey, String secretKeyHash, String requestDate) {
-		CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+		CloseableHttpClient httpClient = getCloseableHttpClient();
 		HttpDeleteWithBody deleteWithBody = getHttpDeleteWithBody(url, apiKey, secretKeyHash, requestDate);
 		StringEntity entity = new StringEntity( deleteRequest, "UTF-8");
 		entity.setContentType("application/json");
@@ -87,7 +112,7 @@ public class HttpClient {
 	}
 
 	public HttpResponse delete(String url, String apiKey, String secretKeyHash, String requestDate) {
-		CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+		CloseableHttpClient httpClient = getCloseableHttpClient();
 		HttpDelete delete = getHttpDelete(url, apiKey, secretKeyHash, requestDate);
 		HttpResponse response = null;
 		try {
@@ -99,8 +124,7 @@ public class HttpClient {
 		return response;
 	}
 	public HttpResponse put(String url, String json, String apiKey, String secretKeyHash, String requestDate) {
-
-		CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+		CloseableHttpClient httpClient = getCloseableHttpClient();
 		HttpPut put = getHttpPut(url, json, apiKey, secretKeyHash, requestDate);
 		HttpResponse response = null;
 
