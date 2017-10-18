@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.codehaus.jackson.JsonParser.Feature;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 
@@ -61,6 +62,7 @@ public class DNSMadeEasyClient {
 
   private void settMapperProperties() {
     mapper.setSerializationInclusion(Inclusion.NON_NULL);
+    mapper.configure(Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
   }
 
   public DNSMadeEasyClient(String restUrl, String apiKey, String apiSecret) {
