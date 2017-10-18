@@ -10,10 +10,10 @@ import lombok.Data;
 @Data
 public class DNSMadeEasyException extends Exception {
 
-	private int httpStatus;
+  private int httpStatus;
 
-	public DNSMadeEasyException(int httpStatus, String msg, Throwable t) {
-		super(msg, t);
-		this.httpStatus = httpStatus;
-	}
+  public DNSMadeEasyException(int httpStatus, String msg, Throwable t) {
+    super(msg, t);
+    this.httpStatus = httpStatus;
+  }
 }
