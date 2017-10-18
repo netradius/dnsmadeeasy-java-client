@@ -88,7 +88,7 @@ public class HttpClient {
     try {
       response = httpClient.execute(get);
       if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-        log.error("Error occurred while trying to post to Rest API. ", response.getStatusLine()
+        log.error("Error occurred while trying to connect to Rest API. ", response.getStatusLine()
             .getReasonPhrase());
       }
     } catch (IOException e) {
