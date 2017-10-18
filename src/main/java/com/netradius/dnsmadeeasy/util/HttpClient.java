@@ -90,6 +90,7 @@ public class HttpClient {
       if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
         log.error("Error occurred while trying to connect to Rest API. ", response.getStatusLine()
             .getReasonPhrase());
+        log.error("Response : " + response);
       }
     } catch (IOException e) {
       log.error("Unable to connect to  " + e.getMessage(), e);
